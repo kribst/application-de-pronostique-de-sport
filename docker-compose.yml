@@ -1,0 +1,49 @@
+name: pronostique
+
+# ---------------------------------------------------------------------------
+# Infrastructure locale : PostgreSQL 16 + Redis 7.
+# Demarrage : docker compose up -d   (Docker Desktop doit etre lance)
+# Arret     : docker compose down     (volumes conserves)
+# Reset DB  : docker compose down -v  (ATTENTION : supprime pgdata/redisdata)
+# ---------------------------------------------------------------------------
+# Les variables POSTGRES_* sont lues depuis le `.env` a la racine du depot
+# (meme fichier que Django, cf. .env.example). Valeurs par defaut : pronostique.
+# Django se connecte ensuite via :
+#   DATABASE_URL=postgres://pronostique:pronostique@localhost:5432/pronostique
+#   REDIS_URL=redis://localhost:6379/0
+# ---------------------------------------------------------------------------
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-pronostique}
+      POSTGRES_USER: ${POSTGRES_USER:-pronostique}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pronostique}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-pronostique}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+  redisdata:

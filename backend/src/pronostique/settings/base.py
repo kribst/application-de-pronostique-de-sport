@@ -77,9 +77,11 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     # API : DRF + CORS (frontend Next.js) + doc OpenAPI.
-    # NB : rest_framework_simplejwt ne requiert pas d'entree INSTALLED_APPS
-    # (doc officielle : seule la config REST_FRAMEWORK/SIMPLE_JWT suffit).
+    # NB : seul le module "token_blacklist" de rest_framework_simplejwt doit
+    # etre declare ici (il fournit les modeles OutstandingToken/BlacklistedToken
+    # pour la rotation des refresh tokens). La config se fait via SIMPLE_JWT.
     "rest_framework",
+    "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "drf_spectacular",
     # Apps metier (structure §4 du cahier : users, sports, matches, odds,
@@ -105,6 +107,8 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+AUTH_USER_MODEL = "users.CustomUser"
 
 ROOT_URLCONF = "pronostique.urls"
 
@@ -259,6 +263,7 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "anon": "100/hour",
         "user": "1000/hour",
+        "auth": "10/min",
     },
 }
 
@@ -268,6 +273,12 @@ SIMPLE_JWT = {
         minutes=JWT_ACCESS_TOKEN_LIFETIME_MINUTES
     ),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=JWT_REFRESH_TOKEN_LIFETIME_DAYS),
+    # Renouvellement automatique du refresh a chaque refresh + blacklist de
+    # l'ancien token (revoque) : limite la reutilisation en cas de fuite.
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    # Met a jour last_login de l'utilisateur lors d'un login par token.
+    "UPDATE_LAST_LOGIN": True,
 }
 
 SPECTACULAR_SETTINGS = {

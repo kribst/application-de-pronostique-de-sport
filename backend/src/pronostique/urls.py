@@ -3,8 +3,9 @@
 Routes :
 - /admin/                     : back-office Django
 - /api/v1/health/             : sonde publique de disponibilite (monitoring)
-- /api/v1/auth/token/         : obtention JWT (access + refresh)
-- /api/v1/auth/token/refresh/ : renouvellement JWT
+- /api/v1/auth/register/      : creation de compte
+- /api/v1/auth/login/         : obtention JWT (access + refresh)
+- /api/v1/auth/refresh/       : renouvellement JWT
 - /api/v1/schema/             : schema OpenAPI (YAML telechargeable)
 - /api/docs/                  : Swagger UI
 - /api/redoc/                 : ReDoc
@@ -26,10 +27,6 @@ from drf_spectacular.views import (
     SpectacularRedocView,
     SpectacularSwaggerView,
 )
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
-)
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -38,8 +35,7 @@ urlpatterns = [
     # /api/v1/health/ independant de l'app qui l'heberge.
     path("api/v1/health/", include("apps.providers.urls_health")),
     # Auth JWT (roadmap phase 1 : Authentification & roles).
-    path("api/v1/auth/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
-    path("api/v1/auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("api/v1/auth/", include("apps.users.auth_urls")),
     # Apps metier (squelettes : urlpatterns vides, montes ici des maintenant
     # pour figer les prefixes /api/v1/<domaine>/ de la roadmap).
     path("api/v1/users/", include("apps.users.urls")),

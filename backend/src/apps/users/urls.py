@@ -1,4 +1,10 @@
-# URLs de l'app users — a remplir en roadmap phase 1.
-# Sera monte sous /api/v1/... via pronostique/urls.py (include).
-# Fichier volontairement vide pour l'instant.
-urlpatterns = []
+# -*- coding: utf-8 -*-
+"""Montees sous /api/v1/users/ (pronostique/urls.py)."""
+from django.urls import path
+
+from .views import LoginHistoryView, MeView
+
+urlpatterns = [
+    path("me/", MeView.as_view(), name="users-me"),
+    path("me/history/", LoginHistoryView.as_view(), name="users-me-history"),
+]

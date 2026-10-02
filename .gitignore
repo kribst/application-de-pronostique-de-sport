@@ -51,3 +51,4 @@ desktop.ini
 # Fichiers Django generes
 staticfiles/
 media/
+.kilo/

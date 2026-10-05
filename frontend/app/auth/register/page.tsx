@@ -1,7 +1,10 @@
 "use client";
 
+import Image from "next/image";
+import Link from "next/link";
 import React, { useEffect, useRef, useState } from "react";
-import "./Inscription.css";
+import { firstError, useAuthForm } from "@/lib/use-auth-form";
+import "./register.css";
 
 type PasswordField = "password" | "confirm-password";
 
@@ -11,6 +14,8 @@ export default function Inscription(): React.JSX.Element {
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const { pending, message, fieldErrors, submit, clearError } =
+    useAuthForm("/api/auth/register");
 
   useEffect(() => {
     const card = cardRef.current;
@@ -50,7 +55,15 @@ export default function Inscription(): React.JSX.Element {
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    // À connecter à ton endpoint Django/DRF.
+
+    const form = event.currentTarget;
+    const data = new FormData(form);
+
+    void submit({
+      email: String(data.get("email") ?? ""),
+      password: String(data.get("password") ?? ""),
+      password_confirm: String(data.get("password_confirm") ?? ""),
+    });
   };
 
   return (
@@ -68,10 +81,13 @@ export default function Inscription(): React.JSX.Element {
         <header className="w-full flex items-center justify-between pb-space-md pt-space-xs border-b border-surface-container/60">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-lg overflow-hidden flex items-center justify-center shadow-sm border border-slate-200/80 bg-white">
-              <img
+              <Image
                 alt="Logo SportPulse AI"
                 className="w-full h-full object-contain"
-                src="https://lh3.googleusercontent.com/aida/AEtjO1WLjm07IKpb5PurQ8fM1O7t4tjVcy1yP2dFChF16P5O_0F_pcVww-fqPeQm-fLbskamDFVr8qYdrJiQH2rjORIFAhdjVD658uL3gl_cj8PW5VTpsJ9peK_glNU87Pzkus72m9I1U4Rr0LkRWYT1AGku321m097okff7Qq-oCR-oiCldxK4Bx53FThAAhiogPnn1Esmiqc22f5A-hRVMVJS8j8cvU6ySHmbT-AobfWQpzL0U4SUXJcejMGo"
+                src="/images/logo-sportpulse.svg"
+                width={36}
+                height={36}
+                priority
               />
             </div>
             <div className="flex items-center gap-2">
@@ -189,7 +205,16 @@ export default function Inscription(): React.JSX.Element {
                   </p>
                 </div>
 
-                <form className="flex flex-col gap-3.5 pt-1" onSubmit={handleSubmit}>
+                <form className="flex flex-col gap-3.5 pt-1" noValidate onSubmit={handleSubmit}>
+                  {message ? (
+                    <p
+                      className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-body-sm text-red-700"
+                      role="alert"
+                    >
+                      {message}
+                    </p>
+                  ) : null}
+
                   <div className="flex flex-col gap-1.5 text-left">
                     <label className="font-label-md text-label-md text-on-surface flex justify-between" htmlFor="email">
                       <span>Adresse email</span>
@@ -199,8 +224,21 @@ export default function Inscription(): React.JSX.Element {
                       <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-secondary group-focus-within:text-primary transition-colors">
                         <span className="material-symbols-outlined text-[19px]">mail</span>
                       </span>
-                      <input className="w-full h-11 pl-10 pr-3.5 rounded-lg border border-slate-200 bg-slate-50/50 text-on-surface font-body-md text-body-md placeholder:text-outline/60 focus:bg-white focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all duration-200" id="email" name="email" placeholder="vous@exemple.com" required type="email" />
+                      <input
+                        aria-invalid={Boolean(firstError(fieldErrors, "email"))}
+                        className="w-full h-11 pl-10 pr-3.5 rounded-lg border border-slate-200 bg-slate-50/50 text-on-surface font-body-md text-body-md placeholder:text-outline/60 focus:bg-white focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all duration-200 aria-invalid:border-red-400 aria-invalid:bg-red-50/40"
+                        id="email"
+                        name="email"
+                        onChange={() => clearError("email")}
+                        placeholder="vous@exemple.com"
+                        required
+                        suppressHydrationWarning
+                        type="email"
+                      />
                     </div>
+                    {firstError(fieldErrors, "email") ? (
+                      <span className="text-[12px] text-red-600">{firstError(fieldErrors, "email")}</span>
+                    ) : null}
                   </div>
 
                   <div className="flex flex-col gap-1.5 text-left">
@@ -210,11 +248,15 @@ export default function Inscription(): React.JSX.Element {
                         <span className="material-symbols-outlined text-[19px]">lock</span>
                       </span>
                       <input
-                        className="w-full h-11 pl-10 pr-11 rounded-lg border border-slate-200 bg-slate-50/50 text-on-surface font-body-md text-body-md placeholder:text-outline/60 focus:bg-white focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all duration-200"
+                        aria-invalid={Boolean(firstError(fieldErrors, "password"))}
+                        autoComplete="new-password"
+                        className="w-full h-11 pl-10 pr-11 rounded-lg border border-slate-200 bg-slate-50/50 text-on-surface font-body-md text-body-md placeholder:text-outline/60 focus:bg-white focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all duration-200 aria-invalid:border-red-400 aria-invalid:bg-red-50/40"
                         id="password"
                         name="password"
+                        onChange={() => clearError("password")}
                         placeholder="8 caractères minimum"
                         required
+                        suppressHydrationWarning
                         type={showPassword ? "text" : "password"}
                       />
                       <button
@@ -228,6 +270,9 @@ export default function Inscription(): React.JSX.Element {
                         </span>
                       </button>
                     </div>
+                    {firstError(fieldErrors, "password") ? (
+                      <span className="text-[12px] text-red-600">{firstError(fieldErrors, "password")}</span>
+                    ) : null}
                   </div>
 
                   <div className="flex flex-col gap-1.5 text-left">
@@ -238,12 +283,16 @@ export default function Inscription(): React.JSX.Element {
                       <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-secondary group-focus-within:text-primary transition-colors">
                         <span className="material-symbols-outlined text-[19px]">verified_user</span>
                       </span>
-                      <input
-                        className="w-full h-11 pl-10 pr-11 rounded-lg border border-slate-200 bg-slate-50/50 text-on-surface font-body-md text-body-md placeholder:text-outline/60 focus:bg-white focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all duration-200"
+<input
+                        aria-invalid={Boolean(firstError(fieldErrors, "password_confirm"))}
+                        autoComplete="new-password"
+                        className="w-full h-11 pl-10 pr-11 rounded-lg border border-slate-200 bg-slate-50/50 text-on-surface font-body-md text-body-md placeholder:text-outline/60 focus:bg-white focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all duration-200 aria-invalid:border-red-400 aria-invalid:bg-red-50/40"
                         id="confirm-password"
-                        name="confirm-password"
+                        name="password_confirm"
+                        onChange={() => clearError("password_confirm")}
                         placeholder="Confirmez votre mot de passe"
                         required
+                        suppressHydrationWarning
                         type={showConfirmPassword ? "text" : "password"}
                       />
                       <button
@@ -257,29 +306,32 @@ export default function Inscription(): React.JSX.Element {
                         </span>
                       </button>
                     </div>
+                    {firstError(fieldErrors, "password_confirm") ? (
+                      <span className="text-[12px] text-red-600">{firstError(fieldErrors, "password_confirm")}</span>
+                    ) : null}
                   </div>
 
                   <div className="flex items-start gap-2.5 pt-1 text-left">
-                    <input className="mt-0.5 w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500/30 cursor-pointer" id="terms" name="terms" required type="checkbox" />
+                    <input className="mt-0.5 w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500/30 cursor-pointer" id="terms" name="terms" required suppressHydrationWarning type="checkbox" />
                     <label className="font-body-sm text-[12px] text-on-surface-variant cursor-pointer select-none leading-tight" htmlFor="terms">
                       J&apos;accepte les conditions générales et la politique de confidentialité
                     </label>
                   </div>
 
                   <div className="pt-2">
-                    <button className="relative w-full h-12 rounded-xl bg-gradient-to-r from-sky-600 via-teal-600 to-emerald-600 text-white font-label-md text-label-md font-semibold tracking-wide shadow-md shadow-teal-700/20 hover:shadow-lg hover:shadow-teal-700/30 active:scale-[0.99] transition-all duration-200 overflow-hidden group flex items-center justify-center gap-2 cursor-pointer" type="submit">
+                    <button className="relative w-full h-12 rounded-xl bg-gradient-to-r from-sky-600 via-teal-600 to-emerald-600 text-white font-label-md text-label-md font-semibold tracking-wide shadow-md shadow-teal-700/20 hover:shadow-lg hover:shadow-teal-700/30 active:scale-[0.99] transition-all duration-200 overflow-hidden group flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-progress" disabled={pending} type="submit">
                       <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-                      <span>Créer mon compte gratuit</span>
-                      <span className="material-symbols-outlined text-[19px] group-hover:translate-x-0.5 transition-transform duration-200">arrow_forward</span>
+                      <span>{pending ? "Création du compte..." : "Créer mon compte gratuit"}</span>
+                      <span className="material-symbols-outlined text-[19px] group-hover:translate-x-0.5 transition-transform duration-200">{pending ? "progress_activity" : "arrow_forward"}</span>
                     </button>
                   </div>
 
                   <div className="text-center pt-1">
                     <p className="font-body-md text-body-md text-secondary">
                       Vous avez déjà un compte ?
-                      <a className="font-label-md text-label-md text-primary font-semibold hover:underline ml-1" href="#">
+                      <Link className="font-label-md text-label-md text-primary font-semibold hover:underline ml-1" href="/auth/login">
                         Se connecter
-                      </a>
+                      </Link>
                     </p>
                   </div>
                 </form>

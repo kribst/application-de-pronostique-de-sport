@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import "./ForgotPassword.css";
+import "./forgot-password.css";
 
 const ForgotPassword = () => {
-  const [email, setEmail] = useState("v.moreau@quantcapital.eu");
+  const [email, setEmail] = useState("");
   const [view, setView] = useState<"form" | "success">("form");
 
   const [resendCooldown, setResendCooldown] = useState(48);
@@ -599,6 +599,7 @@ const ForgotPassword = () => {
                             }
                             placeholder="analyste@hedgefund.com"
                             required
+                            suppressHydrationWarning
                           />
 
                         </div>
@@ -720,7 +721,7 @@ const ForgotPassword = () => {
                 <div className="navigation-links">
 
                   <a
-                    href="/auth/Login"
+                    href="/auth/login"
                     className="back-login"
                   >
 

@@ -1,5 +1,5 @@
 import React from "react";
-import "./Home.css";
+import "./home.css";
 
 const FormBadge = ({ value }: { value: string }) => {
   const className =
@@ -68,11 +68,11 @@ const SportPulseHome: React.FC = () => {
           </div>
 
           <div className="header-actions">
-            <a href="#" className="login-link">
+            <a href="/auth/login" className="login-link">
               Se connecter
             </a>
 
-            <a href="#offres" className="primary-button small">
+            <a href="/auth/register" className="primary-button small">
               <span>Créer un compte</span>
               <span className="material-symbols-outlined">arrow_forward</span>
             </a>
@@ -113,7 +113,7 @@ const SportPulseHome: React.FC = () => {
                 </p>
 
                 <div className="hero-actions">
-                  <a href="#offres" className="primary-button large">
+                  <a href="/auth/register" className="primary-button large">
                     <span>Créer un compte gratuit</span>
                     <span className="material-symbols-outlined">
                       arrow_forward
@@ -414,7 +414,7 @@ const SportPulseHome: React.FC = () => {
 
                   <p>
                     Décomposition bayésienne exhaustive, confrontation
-                    historique H2H pondérée par l'antériorité, impact quantifié
+                    historique H2H pondérée par l&apos;antériorité, impact quantifié
                     des absences sur les xG et dynamique offensive/défensive
                     normalisée par ligue.
                   </p>
@@ -422,7 +422,7 @@ const SportPulseHome: React.FC = () => {
 
                 <div className="mini-panel">
                   <div className="mini-row">
-                    <span>Facteur d'impact absence clé</span>
+                    <span>Facteur d&apos;impact absence clé</span>
                     <strong className="rose-text">
                       -0.42 xG projeté
                     </strong>
@@ -460,7 +460,7 @@ const SportPulseHome: React.FC = () => {
                   <p>
                     10 000 à 100 000+ itérations stochastiques par rencontre
                     pour cartographier la distribution exacte des scores
-                    probables et révéler la marge d'incertitude réelle.
+                    probables et révéler la marge d&apos;incertitude réelle.
                   </p>
                 </div>
 
@@ -513,7 +513,7 @@ const SportPulseHome: React.FC = () => {
 
                   <p>
                     Algorithme combinatoire glouton permettant de construire
-                    des scénarios rigoureusement calculés autour d'une cote
+                    des scénarios rigoureusement calculés autour d&apos;une cote
                     recherchée.
                   </p>
                 </div>
@@ -558,7 +558,7 @@ const SportPulseHome: React.FC = () => {
                   <p>
                     Audit rétrospectif permanent de nos modèles prédictifs.
                     Consultez en temps réel la courbe de calibration et
-                    l'évolution de notre Brier score.
+                    l&apos;évolution de notre Brier score.
                   </p>
                 </div>
 
@@ -602,7 +602,7 @@ const SportPulseHome: React.FC = () => {
         <section className="pricing-section" id="offres">
           <div className="section-container">
             <div className="pricing-heading">
-              <span className="section-label">Niveaux d'accès</span>
+              <span className="section-label">Niveaux d&apos;accès</span>
 
               <h2>Tarification structurée et transparente</h2>
 
@@ -695,7 +695,7 @@ const SportPulseHome: React.FC = () => {
 
                   <div className="features-list">
                     <FeatureCheck>
-                      <strong>Analyses illimitées</strong> sur l'intégralité
+                      <strong>Analyses illimitées</strong> sur l&apos;intégralité
                       des championnats
                     </FeatureCheck>
 
@@ -711,7 +711,7 @@ const SportPulseHome: React.FC = () => {
 
                     <FeatureCheck star>
                       <strong>Signaux Value Bet (+EV)</strong> en temps réel
-                      avec alerte d'écart
+                      avec alerte d&apos;écart
                     </FeatureCheck>
 
                     <FeatureCheck>
@@ -726,7 +726,7 @@ const SportPulseHome: React.FC = () => {
                 </div>
 
                 <a href="#" className="premium-button">
-                  <span>Activer l'Accès Institutionnel</span>
+                  <span>Activer l&apos;Accès Institutionnel</span>
 
                   <span className="material-symbols-outlined">
                     bolt

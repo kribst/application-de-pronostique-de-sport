@@ -186,12 +186,38 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 # --- Cache Redis (optionnel) -------------------------------------------------
-# Active uniquement si REDIS_URL est defini (service redis de docker-compose).
-if env("REDIS_URL"):
+# Actif uniquement si REDIS_URL est defini ET que Redis repond. En dev sans
+# Docker (Redis eteint), le throttle DRF casserait toutes les requetes
+# (ConnectionError -> 500). On bascule donc sur le cache local si Redis est
+# injoignable : le dev reste utilisable sans infra, la prod garde Redis.
+def _redis_reachable(url: str) -> bool:
+    if not url:
+        return False
+    try:
+        import socket
+        from urllib.parse import urlparse
+
+        parts = urlparse(url)
+        host = parts.hostname or "localhost"
+        port = parts.port or 6379
+        with socket.create_connection((host, port), timeout=1):
+            return True
+    except OSError:
+        return False
+
+
+if _redis_reachable(env("REDIS_URL")):
     CACHES = {
         "default": {
             "BACKEND": "django.core.cache.backends.redis.RedisCache",
             "LOCATION": env("REDIS_URL"),
+        }
+    }
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "pronostique-dev",
         }
     }
 

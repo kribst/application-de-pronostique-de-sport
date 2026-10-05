@@ -6,6 +6,7 @@ Routes :
 - /api/v1/auth/register/      : creation de compte
 - /api/v1/auth/login/         : obtention JWT (access + refresh)
 - /api/v1/auth/refresh/       : renouvellement JWT
+- /api/v1/auth/logout/        : revocation du refresh token (blacklist)
 - /api/v1/schema/             : schema OpenAPI (YAML telechargeable)
 - /api/docs/                  : Swagger UI
 - /api/redoc/                 : ReDoc

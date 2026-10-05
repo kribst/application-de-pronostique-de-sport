@@ -1,5 +1,18 @@
 @import "tailwindcss";
 
+/* --- Police d'icones Material Symbols -------------------------------------
+   Servie localement (public/fonts) et declaree une seule fois ici : les
+   fichiers de page ne font plus d'appel CDN aGoogle Fonts, ce qui evite un
+   aller-retour bloquant au premier rendu.
+   --------------------------------------------------------------------------- */
+@font-face {
+  font-family: "Material Symbols Outlined";
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block;
+  src: url("/fonts/MaterialSymbolsOutlined.woff2") format("woff2");
+}
+
 /* --- Design tokens -------------------------------------------------------
    Palette claire inspiree Material 3 (teal/emerald) reprise du mockup.
    Ces variables alimentent les utilitaires Tailwind v4 :

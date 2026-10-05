@@ -1,9 +1,17 @@
 "use client";
 
+import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
-import "./Login.css";
+import "./login.css";
+import { firstError, useAuthForm } from "@/lib/use-auth-form";
 
-const Login = () => {
+type LoginClientProps = {
+  /** ?registered=1 : le compte vient d'etre cree, on invite a se connecter. */
+  justRegistered: boolean;
+};
+
+const LoginClient = ({ justRegistered }: LoginClientProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const [mousePosition, setMousePosition] = useState({
@@ -11,6 +19,8 @@ const Login = () => {
     y: 200,
   });
   const [isHoveringCard, setIsHoveringCard] = useState(false);
+  const { pending, message, fieldErrors, submit, clearError } =
+    useAuthForm("/api/auth/login");
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -24,8 +34,13 @@ const Login = () => {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // Ajouter ici la logique de connexion à ton API
-    console.log("Connexion...");
+    const form = e.currentTarget;
+    const data = new FormData(form);
+
+    void submit({
+      email: String(data.get("email") ?? ""),
+      password: String(data.get("password") ?? ""),
+    });
   };
 
   return (
@@ -43,10 +58,13 @@ const Login = () => {
           {/* Header */}
           <header className="top-header">
             <div className="brand-container">
-              <img
-                src="https://lh3.googleusercontent.com/aida/AEtjO1WLjm07IKpb5PurQ8fM1O7t4tjVcy1yP2dFChF16P5O_0F_pcVww-fqPeQm-fLbskamDFVr8qYdrJiQH2rjORIFAhdjVD658uL3gl_cj8PW5VTpsJ9peK_glNU87Pzkus72m9I1U4Rr0LkRWYT1AGku321m097okff7Qq-oCR-oiCldxK4Bx53FThAAhiogPnn1Esmiqc22f5A-hRVMVJS8j8cvU6ySHmbT-AobfWQpzL0U4SUXJcejMGo"
+              <Image
+                src="/images/logo-sportpulse.svg"
                 alt="SportPulse AI Logo"
                 className="brand-logo"
+                width={40}
+                height={40}
+                priority
               />
 
               <div className="brand-name-container">
@@ -253,26 +271,71 @@ const Login = () => {
                 {/* Form */}
                 <form
                   className="login-form"
+                  noValidate
                   onSubmit={handleSubmit}
                 >
+                  {justRegistered ? (
+                    <div
+                      className="form-alert success"
+                      role="status"
+                    >
+                      <span className="material-symbols-outlined">
+                        check_circle
+                      </span>
+
+                      <span>
+                        Compte créé. Connectez-vous avec vos identifiants.
+                      </span>
+                    </div>
+                  ) : null}
+
+                  {message ? (
+                    <div
+                      className="form-alert"
+                      role="alert"
+                    >
+                      <span className="material-symbols-outlined">
+                        error
+                      </span>
+
+                      <span>{message}</span>
+                    </div>
+                  ) : null}
+
                   {/* Email */}
                   <div className="form-group">
                     <label htmlFor="email">
                       Adresse email
                     </label>
 
-                    <div className="input-wrapper">
+                    <div
+                      className={`input-wrapper${
+                        firstError(fieldErrors, "email")
+                          ? " has-error"
+                          : ""
+                      }`}
+                    >
                       <span className="material-symbols-outlined input-icon">
                         mail
                       </span>
 
                       <input
+                        autoComplete="email"
                         id="email"
-                        type="email"
+                        name="email"
+                        onChange={() => clearError("email")}
                         placeholder="vous@exemple.com"
                         required
+                        suppressHydrationWarning
+                        type="email"
                       />
                     </div>
+
+                    {firstError(fieldErrors, "email") ? (
+                      <span className="field-error">
+                        {firstError(fieldErrors, "email")}
+                      </span>
+                    ) : null}
                   </div>
 
                   {/* Password */}
@@ -282,21 +345,34 @@ const Login = () => {
                         Mot de passe
                       </label>
 
-                      <a href="#" className="forgot-password">
+                      <Link
+                        className="forgot-password"
+                        href="/auth/forgot-password"
+                      >
                         Mot de passe oublié ?
-                      </a>
+                      </Link>
                     </div>
 
-                    <div className="input-wrapper">
+                    <div
+                      className={`input-wrapper${
+                        firstError(fieldErrors, "password")
+                          ? " has-error"
+                          : ""
+                      }`}
+                    >
                       <span className="material-symbols-outlined input-icon">
                         lock
                       </span>
 
                       <input
+                        autoComplete="current-password"
                         id="password"
-                        type={showPassword ? "text" : "password"}
+                        name="password"
+                        onChange={() => clearError("password")}
                         placeholder="••••••••••••"
                         required
+                        suppressHydrationWarning
+                        type={showPassword ? "text" : "password"}
                       />
 
                       <button
@@ -314,6 +390,12 @@ const Login = () => {
                         </span>
                       </button>
                     </div>
+
+                    {firstError(fieldErrors, "password") ? (
+                      <span className="field-error">
+                        {firstError(fieldErrors, "password")}
+                      </span>
+                    ) : null}
                   </div>
 
                   {/* Remember */}
@@ -325,37 +407,41 @@ const Login = () => {
                         onChange={(e) =>
                           setRemember(e.target.checked)
                         }
+                        suppressHydrationWarning
                       />
 
                       <span>Se souvenir de moi</span>
                     </label>
                   </div>
 
-                  {/* Submit */}
+{/* Submit */}
                   <button
-                    type="submit"
                     className="login-button"
+                    disabled={pending}
+                    type="submit"
                   >
                     <span>
-                      Se connecter à mon compte
+                      {pending
+                        ? "Connexion en cours..."
+                        : "Se connecter à mon compte"}
                     </span>
 
-                    <span className="material-symbols-outlined">
-                      arrow_forward
+                    <span className="material-symbols-outlined spinner">
+                      {pending ? "progress_activity" : "arrow_forward"}
                     </span>
                   </button>
 
                   {/* Register */}
                   <div className="register-link-container">
                     <p>
-                      Vous n&aposavez pas encore de compte ?
+                      Vous n&apos;avez pas encore de compte ?
 
-                      <a href="/auth/register">
+                      <Link href="/auth/register">
                         S&apos;inscrire gratuitement
                         <span className="material-symbols-outlined">
                           chevron_right
                         </span>
-                      </a>
+                      </Link>
                     </p>
                   </div>
 
@@ -422,4 +508,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default LoginClient;

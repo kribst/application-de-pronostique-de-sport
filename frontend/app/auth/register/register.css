@@ -1,7 +1,7 @@
-/* Material Symbols : necessaire pour les icones du mockup.
-   Les polices texte (Geist / Inter) sont chargees par next/font dans
-   app/layout.tsx, pas ici : evite un appel CDN bloquant au rendu. */
-@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap");
+/* Material Symbols : declaree une seule fois dans app/globals.css (servi
+   localement), donc aucun appel CDN ici.
+   Les polices texte (Geist) sont chargees par next/font dans
+   app/layout.tsx. */
 
 html {
   background: #fbfcfe;

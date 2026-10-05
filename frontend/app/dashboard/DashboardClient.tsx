@@ -1,7 +1,10 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import React, { useState } from "react";
-import "./Dashboard.css";
+
+import { hasPremiumAccess, roleLabel, type AuthUser } from "@/lib/auth-types";
+import "./dashboard.css";
 
 type Match = {
   league: string;
@@ -344,7 +347,23 @@ function Sidebar() {
   );
 }
 
-function Header() {
+function Header({ user }: { user: AuthUser }) {
+  const router = useRouter();
+  const [signingOut, setSigningOut] = useState(false);
+  const premium = hasPremiumAccess(user);
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } finally {
+      // Les cookies sont effaces : on recharge pour repasser par le proxy.
+      router.replace("/");
+      router.refresh();
+    }
+  };
+
   return (
     <header className="dashboard-header">
       <div className="header-main">
@@ -389,14 +408,31 @@ function Header() {
           <div className="profile">
             <div className="profile-info">
               <div className="profile-name">
-                <strong>Syndicate Lab</strong>
-                <span>Free</span>
+                <strong>{user.email}</strong>
+                <span>{roleLabel(user)}</span>
               </div>
-              <small>ID: QNT-8821</small>
+
+              <small>ID: {user.id.slice(0, 8).toUpperCase()}</small>
             </div>
 
-            <button className="premium-button" type="button">
-              Passer Premium
+            {premium ? null : (
+              <button className="premium-button" type="button">
+                Passer Premium
+              </button>
+            )}
+
+            <button
+              className="signout-button"
+              disabled={signingOut}
+              onClick={handleSignOut}
+              title="Se déconnecter"
+              type="button"
+            >
+              <MaterialIcon>logout</MaterialIcon>
+
+              <span className="signout-label">
+                {signingOut ? "Déconnexion..." : "Déconnexion"}
+              </span>
             </button>
 
             <div className="avatar">
@@ -904,13 +940,13 @@ function CalibrationCard() {
   );
 }
 
-export default function Dashboard() {
+export default function DashboardClient({ user }: { user: AuthUser }) {
   return (
     <div className="dashboard">
       <Sidebar />
 
       <div className="dashboard-content">
-        <Header />
+        <Header user={user} />
 
         <main className="main-content">
           <div className="dashboard-background" />
@@ -919,7 +955,7 @@ export default function Dashboard() {
             <section className="welcome-section">
               <div>
                 <div className="welcome-title">
-                  <h1>Bonjour Thomas</h1>
+                  <h1>Bonjour {user.email}</h1>
                   <span>👋</span>
 
                   <div className="terminal-badge">
@@ -982,7 +1018,7 @@ export default function Dashboard() {
               <div className="tools-column">
                 <TargetOddsCard />
                 <ValueBetsCard />
-                <PremiumCard />
+                {hasPremiumAccess(user) ? null : <PremiumCard />}
               </div>
             </section>
 

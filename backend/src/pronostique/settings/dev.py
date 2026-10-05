@@ -18,13 +18,16 @@ DATABASES = {"default": _database_config()}
 
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "[::1]", *(_BASE_ALLOWED_HOSTS or [])]
 
-# Frontend Next.js local (npm run dev -> :3000) + API locale.
+# Frontend Next.js local (npm run dev -> :3000) + API locale sur 8001.
+# Le port 8000 est souvent occupe par un conteneur d'un autre projet en local ;
+# lancer Django sur 8001 evite que `localhost:8000` tombe sur ce conteneur :
+#   python src/manage.py runserver 8001
 CSRF_TRUSTED_ORIGINS = sorted(
     {
         "http://localhost:3000",
         "http://127.0.0.1:3000",
-        "http://localhost:8000",
-        "http://127.0.0.1:8000",
+        "http://localhost:8001",
+        "http://127.0.0.1:8001",
         *env.list("DJANGO_CSRF_TRUSTED_ORIGINS", default=[]),
     }
 )

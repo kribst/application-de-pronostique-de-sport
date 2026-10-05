@@ -74,6 +74,24 @@ class AuthFlowTests(APITestCase):
         r = self.client.post(reverse("auth-login"), {"email": "x@x.com", "password": "bad"}, format="json")
         self.assertEqual(r.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
 
+    def test_logout_blacklists_refresh_token(self):
+        CustomUser.objects.create_user("u@x.com", PASSWORD)
+        login = self.client.post(reverse("auth-login"), {"email": "u@x.com", "password": PASSWORD}, format="json")
+        refresh = login.data["refresh"]
+
+        r = self.client.post(reverse("auth-logout"), {"refresh": refresh}, format="json")
+        self.assertEqual(r.status_code, status.HTTP_205_RESET_CONTENT)
+
+        # Le refresh revoque ne permet plus d'obtenir un nouvel access token.
+        again = self.client.post(reverse("auth-refresh"), {"refresh": refresh}, format="json")
+        self.assertEqual(again.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_logout_accepts_missing_or_invalid_refresh(self):
+        r = self.client.post(reverse("auth-logout"), {}, format="json")
+        self.assertEqual(r.status_code, status.HTTP_205_RESET_CONTENT)
+        r = self.client.post(reverse("auth-logout"), {"refresh": "pas-un-jwt"}, format="json")
+        self.assertEqual(r.status_code, status.HTTP_205_RESET_CONTENT)
+
 
 class MeEndpointTests(APITestCase):
     def setUp(self):

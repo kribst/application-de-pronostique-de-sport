@@ -6,6 +6,7 @@ from zoneinfo import available_timezones
 
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.core.exceptions import ValidationError
+from django.core.validators import MinLengthValidator
 from django.db import models
 from django.db.models.functions import Lower
 from django.utils import timezone as dj_timezone
@@ -40,7 +41,11 @@ class UserManager(BaseUserManager):
         if not email:
             raise ValueError("L'adresse email est obligatoire.")
         email = self.normalize_email(email).lower()
-        user = self.model(email=email, **extra_fields)
+        username = extra_fields.pop("username", None)
+        if not username or len(username.strip()) < 6:
+            raise ValueError("Le nom d'utilisateur doit contenir au moins 6 caractères.")
+        username = username.strip()
+        user = self.model(email=email, username=username, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
@@ -63,6 +68,12 @@ class UserManager(BaseUserManager):
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(unique=True, max_length=254)
+    username = models.CharField(
+        max_length=150,
+        unique=True,
+        help_text="Doit contenir au moins 6 caractères.",
+        validators=[MinLengthValidator(6)],
+    )
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.USER, db_index=True)
     locale = models.CharField(max_length=5, choices=Locale.choices, default=Locale.FR)
     timezone = models.CharField(
@@ -76,7 +87,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     objects = UserManager()
 
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = []
+    REQUIRED_FIELDS = ["username"]
 
     class Meta:
         constraints = [

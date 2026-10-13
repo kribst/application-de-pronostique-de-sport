@@ -1,17 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { postAuthAction } from "@/lib/auth-actions";
 import "./forgot-password.css";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
   const [view, setView] = useState<"form" | "success">("form");
 
-  const [resendCooldown, setResendCooldown] = useState(48);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [resendMessage, setResendMessage] = useState(
     "Renvoyer l'email"
   );
   const [isResending, setIsResending] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const [mousePosition, setMousePosition] = useState({
     x: 0,
@@ -71,8 +74,21 @@ const ForgotPassword = () => {
      SHOW SUCCESS
   ======================================== */
 
-  const showSuccessState = () => {
-    if (!email.trim()) {
+  const handleFormSubmit = async (
+    event: React.FormEvent<HTMLFormElement>
+  ) => {
+    event.preventDefault();
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+    setFormError(null);
+    const result = await postAuthAction("/api/auth/password-reset", {
+      email: email.trim(),
+    });
+    setIsSubmitting(false);
+
+    if (!result.ok) {
+      setFormError(result.message ?? "La demande a échoué. Réessaie.");
       return;
     }
 
@@ -80,28 +96,27 @@ const ForgotPassword = () => {
   };
 
   /* ========================================
-     FORM SUBMIT
-  ======================================== */
-
-  const handleFormSubmit = (
-    event: React.FormEvent<HTMLFormElement>
-  ) => {
-    event.preventDefault();
-
-    showSuccessState();
-  };
-
-  /* ========================================
      RESEND EMAIL
   ======================================== */
 
-  const handleResend = () => {
+  const handleResend = async () => {
     if (isResending) {
       return;
     }
 
-    setResendMessage("Email renvoyé !");
+    setFormError(null);
     setIsResending(true);
+    const result = await postAuthAction("/api/auth/password-reset", {
+      email: email.trim(),
+    });
+
+    if (!result.ok) {
+      setFormError(result.message ?? "La demande a échoué. Réessaie.");
+      setIsResending(false);
+      return;
+    }
+
+    setResendMessage("Demande renvoyée");
     setResendCooldown(60);
 
     setTimeout(() => {
@@ -512,34 +527,6 @@ const ForgotPassword = () => {
 
                   {/* View switcher */}
 
-                  <div className="view-switcher">
-
-                    <button
-                      type="button"
-                      className={
-                        view === "form"
-                          ? "view-tab active"
-                          : "view-tab"
-                      }
-                      onClick={showFormState}
-                    >
-                      Formulaire
-                    </button>
-
-                    <button
-                      type="button"
-                      className={
-                        view === "success"
-                          ? "view-tab active"
-                          : "view-tab"
-                      }
-                      onClick={showSuccessState}
-                    >
-                      Succès
-                    </button>
-
-                  </div>
-
                 </div>
 
                 {/* ========================================
@@ -564,6 +551,12 @@ const ForgotPassword = () => {
                       </p>
 
                     </div>
+
+                    {formError ? (
+                      <p className="auth-feedback error" role="alert">
+                        {formError}
+                      </p>
+                    ) : null}
 
                     <form
                       className="reset-form"
@@ -609,12 +602,13 @@ const ForgotPassword = () => {
                       <button
                         type="submit"
                         className="reset-button"
+                        disabled={isSubmitting}
                       >
 
                         <span className="reset-button-glow" />
 
                         <span>
-                          Envoyer le lien de réinitialisation
+                          {isSubmitting ? "Envoi en cours..." : "Envoyer le lien de réinitialisation"}
                         </span>
 
                         <span className="material-symbols-outlined">
@@ -650,7 +644,7 @@ const ForgotPassword = () => {
                       <div className="success-heading">
 
                         <span className="email-sent-badge">
-                          EMAIL ENVOYÉ
+                          DEMANDE TRAITÉE
                         </span>
 
                         <h2>
@@ -660,12 +654,15 @@ const ForgotPassword = () => {
                       </div>
 
                       <p>
-                        Un lien cryptographique valable{" "}
-                        <strong>
-                          15 minutes
-                        </strong>{" "}
-                        a été transmis avec succès à :
+                        Si un compte est associé à cette adresse, un lien de réinitialisation valable{" "}
+                        <strong>15 minutes</strong> vous sera envoyé.
                       </p>
+
+                      {formError ? (
+                        <p className="auth-feedback error" role="alert">
+                          {formError}
+                        </p>
+                      ) : null}
 
                       <div className="target-email">
 

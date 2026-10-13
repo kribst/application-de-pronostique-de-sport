@@ -2,6 +2,7 @@
 export type AuthUser = {
   id: string;
   email: string;
+  username: string;
   role: "USER" | "PREMIUM" | "MODERATOR" | "ADMIN";
   locale: string;
   timezone: string;

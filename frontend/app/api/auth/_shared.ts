@@ -140,3 +140,23 @@ export async function postRegister(body: unknown): Promise<NextResponse> {
     return failureResponse(error);
   }
 }
+
+export async function postAuthAction(
+  path: string,
+  body: Record<string, string>
+): Promise<NextResponse> {
+  try {
+    const { data } = await djangoFetch(path, {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+    const payload =
+      data && typeof data === "object" && !Array.isArray(data)
+        ? (data as Record<string, unknown>)
+        : {};
+
+    return NextResponse.json({ ...payload, ok: true });
+  } catch (error) {
+    return failureResponse(error);
+  }
+}

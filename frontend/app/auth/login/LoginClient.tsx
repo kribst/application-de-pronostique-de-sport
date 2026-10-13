@@ -3,15 +3,17 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { postAuthAction } from "@/lib/auth-actions";
 import "./login.css";
 import { firstError, useAuthForm } from "@/lib/use-auth-form";
 
 type LoginClientProps = {
   /** ?registered=1 : le compte vient d'etre cree, on invite a se connecter. */
   justRegistered: boolean;
+  passwordReset: boolean;
 };
 
-const LoginClient = ({ justRegistered }: LoginClientProps) => {
+const LoginClient = ({ justRegistered, passwordReset }: LoginClientProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const [mousePosition, setMousePosition] = useState({
@@ -19,6 +21,8 @@ const LoginClient = ({ justRegistered }: LoginClientProps) => {
     y: 200,
   });
   const [isHoveringCard, setIsHoveringCard] = useState(false);
+  const [resendPending, setResendPending] = useState(false);
+  const [resendMessage, setResendMessage] = useState<string | null>(null);
   const { pending, message, fieldErrors, submit, clearError } =
     useAuthForm("/api/auth/login");
 
@@ -41,6 +45,32 @@ const LoginClient = ({ justRegistered }: LoginClientProps) => {
       email: String(data.get("email") ?? ""),
       password: String(data.get("password") ?? ""),
     });
+  };
+
+  const handleResendVerification = async (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    const form = event.currentTarget.form;
+    const email = form?.elements.namedItem("email");
+    const address = email instanceof HTMLInputElement ? email.value.trim() : "";
+
+    if (!address) {
+      setResendMessage("Saisissez votre adresse email dans le champ ci-dessous.");
+      return;
+    }
+
+    setResendPending(true);
+    setResendMessage(null);
+    const result = await postAuthAction("/api/auth/resend-verification", {
+      email: address,
+    });
+    setResendMessage(
+      result.message ??
+        (result.ok
+          ? "Si un compte non confirmé correspond à cette adresse, un email a été envoyé."
+          : "Le renvoi a échoué. Réessaie.")
+    );
+    setResendPending(false);
   };
 
   return (
@@ -274,18 +304,31 @@ const LoginClient = ({ justRegistered }: LoginClientProps) => {
                   noValidate
                   onSubmit={handleSubmit}
                 >
-                  {justRegistered ? (
-                    <div
-                      className="form-alert success"
-                      role="status"
-                    >
+                  {justRegistered || passwordReset ? (
+                    <div className="form-alert success" role="status">
                       <span className="material-symbols-outlined">
                         check_circle
                       </span>
-
-                      <span>
-                        Compte créé. Connectez-vous avec vos identifiants.
-                      </span>
+                      <div className="form-alert-content">
+                        <span>
+                          {passwordReset
+                            ? "Mot de passe modifié. Connectez-vous avec votre nouveau mot de passe."
+                            : "Compte créé. Consultez votre boîte mail et confirmez votre adresse avant de vous connecter."}
+                        </span>
+                        {justRegistered ? (
+                          <>
+                            <button
+                              className="resend-verification-button"
+                              type="button"
+                              onClick={handleResendVerification}
+                              disabled={resendPending}
+                            >
+                              {resendPending ? "Envoi en cours..." : "Renvoyer l’email de confirmation"}
+                            </button>
+                            {resendMessage ? <span>{resendMessage}</span> : null}
+                          </>
+                        ) : null}
+                      </div>
                     </div>
                   ) : null}
 

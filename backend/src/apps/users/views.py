@@ -1,19 +1,28 @@
 # -*- coding: utf-8 -*-
+from django.contrib.auth import get_user_model
 from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .models import LoginHistory
 from .serializers import (
+    ChangePasswordSerializer,
+    EmailOnlySerializer,
     LoginHistorySerializer,
     LoginSerializer,
+    PasswordResetConfirmSerializer,
     RegisterSerializer,
     UserSerializer,
+    VerifyEmailSerializer,
+    VerifiedTokenRefreshSerializer,
 )
+from .services import send_password_reset_email, send_verification_email
+
+User = get_user_model()
 
 
 class RegisterView(generics.CreateAPIView):
@@ -27,12 +36,11 @@ class RegisterView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        refresh = RefreshToken.for_user(user)
+        send_verification_email(user)
         return Response(
             {
                 "user": UserSerializer(user).data,
-                "refresh": str(refresh),
-                "access": str(refresh.access_token),
+                "detail": "Un email de confirmation vient de vous etre envoye.",
             },
             status=status.HTTP_201_CREATED,
         )
@@ -42,6 +50,10 @@ class LoginView(TokenObtainPairView):
     serializer_class = LoginSerializer
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "auth"
+
+
+class VerifiedTokenRefreshView(TokenRefreshView):
+    serializer_class = VerifiedTokenRefreshSerializer
 
 
 class LogoutView(generics.GenericAPIView):
@@ -90,3 +102,84 @@ class LoginHistoryView(generics.ListAPIView):
 
     def get_queryset(self):
         return LoginHistory.objects.filter(user=self.request.user)
+
+
+class PasswordResetRequestView(generics.GenericAPIView):
+    serializer_class = EmailOnlySerializer
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = User.objects.filter(
+            email__iexact=serializer.validated_data["email"], is_active=True
+        ).first()
+        if user is not None:
+            send_password_reset_email(user)
+        return Response(
+            {"detail": "Si un compte correspond a cette adresse, un email a ete envoye."}
+        )
+
+
+class PasswordResetConfirmView(generics.GenericAPIView):
+    serializer_class = PasswordResetConfirmSerializer
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class VerifyEmailView(generics.GenericAPIView):
+    serializer_class = VerifyEmailSerializer
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"detail": "Adresse email confirmee."})
+
+
+class ResendVerificationView(generics.GenericAPIView):
+    serializer_class = EmailOnlySerializer
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = User.objects.filter(
+            email__iexact=serializer.validated_data["email"],
+            is_active=True,
+            is_verified=False,
+        ).first()
+        if user is not None:
+            send_verification_email(user)
+        return Response(
+            {"detail": "Si un compte non confirme correspond a cette adresse, un email a ete envoye."}
+        )
+
+
+class ChangePasswordView(generics.GenericAPIView):
+    serializer_class = ChangePasswordSerializer
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)

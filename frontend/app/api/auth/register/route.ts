@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 /**
  * POST /api/auth/register
- * Corps : { email, password, password_confirm }
+ * Corps : { email, username, password, password_confirm }
  * Reussite : 200 { ok: true, redirectTo: "/auth/login?registered=1" }.
  *
  * Aucune session n'est ouverte : les tokens renvoyes par Django sont jetes
@@ -15,6 +15,7 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   let body: {
     email?: unknown;
+    username?: unknown;
     password?: unknown;
     password_confirm?: unknown;
   };
@@ -28,13 +29,15 @@ export async function POST(request: Request) {
     );
   }
 
-  const { email, password, password_confirm } = body;
+  const { email, username, password, password_confirm } = body;
 
   if (
     typeof email !== "string" ||
+    typeof username !== "string" ||
     typeof password !== "string" ||
     typeof password_confirm !== "string" ||
     email.trim() === "" ||
+    username.trim() === "" ||
     password === "" ||
     password_confirm === ""
   ) {
@@ -47,8 +50,42 @@ export async function POST(request: Request) {
     );
   }
 
+  if (username.trim().length < 6) {
+    return Response.json(
+      {
+        ok: false,
+        message: "Le nom d’utilisateur doit contenir au moins 6 caractères.",
+        fieldErrors: { username: ["Le nom d’utilisateur doit contenir au moins 6 caractères."] },
+      },
+      { status: 400 }
+    );
+  }
+
+  if (username.trim().length > 150) {
+    return Response.json(
+      {
+        ok: false,
+        message: "Le nom d’utilisateur ne peut pas dépasser 150 caractères.",
+        fieldErrors: { username: ["Le nom d’utilisateur ne peut pas dépasser 150 caractères."] },
+      },
+      { status: 400 }
+    );
+  }
+
+  if (password.length < 6) {
+    return Response.json(
+      {
+        ok: false,
+        message: "Le mot de passe doit contenir au moins 6 caractères.",
+        fieldErrors: { password: ["Le mot de passe doit contenir au moins 6 caractères."] },
+      },
+      { status: 400 }
+    );
+  }
+
   return postRegister({
     email: email.trim(),
+    username: username.trim(),
     password,
     password_confirm,
   });

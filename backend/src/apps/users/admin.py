@@ -9,7 +9,7 @@ from .models import CustomUser, LoginHistory
 class CustomUserCreationForm(UserCreationForm):
     class Meta:
         model = CustomUser
-        fields = ("email", "role")
+        fields = ("email", "username", "role")
 
 
 class CustomUserChangeForm(UserChangeForm):
@@ -23,17 +23,17 @@ class CustomUserAdmin(UserAdmin):
     form = CustomUserChangeForm
     add_form = CustomUserCreationForm
     ordering = ("-date_joined",)
-    list_display = ("email", "role", "is_verified", "is_active", "is_staff", "date_joined")
+    list_display = ("email", "username", "role", "is_verified", "is_active", "is_staff", "date_joined")
     list_filter = ("role", "is_verified", "is_active", "is_staff")
-    search_fields = ("email",)
+    search_fields = ("email", "username")
     fieldsets = (
-        (None, {"fields": ("email", "password")}),
+        (None, {"fields": ("email", "username", "password")}),
         ("Profil", {"fields": ("role", "locale", "timezone", "is_verified")}),
         ("Permissions", {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
         ("Dates", {"fields": ("last_login", "date_joined")}),
     )
     add_fieldsets = (
-        (None, {"classes": ("wide",), "fields": ("email", "role", "password1", "password2")}),
+        (None, {"classes": ("wide",), "fields": ("email", "username", "role", "password1", "password2")}),
     )
 
 

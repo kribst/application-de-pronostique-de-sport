@@ -47,6 +47,8 @@ env = environ.Env(
     EMAIL_HOST_PASSWORD=(str, ""),
     EMAIL_USE_TLS=(bool, False),
     DEFAULT_FROM_EMAIL=(str, "no-reply@pronostique.local"),
+    FRONTEND_URL=(str, "http://localhost:3000"),
+    PASSWORD_RESET_TIMEOUT_SECONDS=(int, 900),
     DJANGO_SECURE_SSL_REDIRECT=(bool, False),
     DJANGO_SECURE_HSTS_SECONDS=(int, 0),
     DJANGO_ADMINS=(list, []),
@@ -157,6 +159,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 6},
     },
     {
         "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
@@ -333,6 +336,8 @@ EMAIL_HOST_USER = env("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")
 EMAIL_USE_TLS = env("EMAIL_USE_TLS")
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL")
+FRONTEND_URL = env("FRONTEND_URL")
+PASSWORD_RESET_TIMEOUT = env("PASSWORD_RESET_TIMEOUT_SECONDS")
 
 
 # --- Admins / logs ------------------------------------------------------------

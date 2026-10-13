@@ -1050,6 +1050,29 @@ a {
   color: #047857;
 }
 
+.form-alert-content {
+  display: grid;
+  gap: 6px;
+}
+
+.resend-verification-button {
+  width: fit-content;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #047857;
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.resend-verification-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
 .field-error {
   display: flex;
   align-items: center;

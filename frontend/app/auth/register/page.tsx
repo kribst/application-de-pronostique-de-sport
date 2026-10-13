@@ -61,6 +61,7 @@ export default function Inscription(): React.JSX.Element {
 
     void submit({
       email: String(data.get("email") ?? ""),
+      username: String(data.get("username") ?? ""),
       password: String(data.get("password") ?? ""),
       password_confirm: String(data.get("password_confirm") ?? ""),
     });
@@ -216,6 +217,36 @@ export default function Inscription(): React.JSX.Element {
                   ) : null}
 
                   <div className="flex flex-col gap-1.5 text-left">
+                    <label className="font-label-md text-label-md text-on-surface flex justify-between" htmlFor="username">
+                      <span>Nom d’utilisateur</span>
+                      <span className="text-secondary font-body-sm text-[11px]">Obligatoire</span>
+                    </label>
+                    <div className="relative group">
+                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-secondary group-focus-within:text-primary transition-colors">
+                        <span className="material-symbols-outlined text-[19px]">person</span>
+                      </span>
+                      <input
+                        aria-invalid={Boolean(firstError(fieldErrors, "username"))}
+                        autoComplete="username"
+                        className="w-full h-11 pl-10 pr-3.5 rounded-lg border border-slate-200 bg-slate-50/50 text-on-surface font-body-md text-body-md placeholder:text-outline/60 focus:bg-white focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all duration-200 aria-invalid:border-red-400 aria-invalid:bg-red-50/40"
+                        id="username"
+                        maxLength={150}
+                        minLength={6}
+                        name="username"
+                        onChange={() => clearError("username")}
+                        placeholder="Choisissez un nom d’utilisateur"
+                        required
+                        suppressHydrationWarning
+                        type="text"
+                      />
+                    </div>
+                    {firstError(fieldErrors, "username") ? (
+                      <span className="text-[12px] text-red-600">{firstError(fieldErrors, "username")}</span>
+                    ) : null}
+                  </div>
+
+
+                  <div className="flex flex-col gap-1.5 text-left">
                     <label className="font-label-md text-label-md text-on-surface flex justify-between" htmlFor="email">
                       <span>Adresse email</span>
                       <span className="text-secondary font-body-sm text-[11px]">Obligatoire</span>
@@ -241,6 +272,7 @@ export default function Inscription(): React.JSX.Element {
                     ) : null}
                   </div>
 
+
                   <div className="flex flex-col gap-1.5 text-left">
                     <label className="font-label-md text-label-md text-on-surface" htmlFor="password">Mot de passe</label>
                     <div className="relative group">
@@ -252,9 +284,10 @@ export default function Inscription(): React.JSX.Element {
                         autoComplete="new-password"
                         className="w-full h-11 pl-10 pr-11 rounded-lg border border-slate-200 bg-slate-50/50 text-on-surface font-body-md text-body-md placeholder:text-outline/60 focus:bg-white focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all duration-200 aria-invalid:border-red-400 aria-invalid:bg-red-50/40"
                         id="password"
+                        minLength={6}
                         name="password"
                         onChange={() => clearError("password")}
-                        placeholder="8 caractères minimum"
+                        placeholder="6 caractères minimum"
                         required
                         suppressHydrationWarning
                         type={showPassword ? "text" : "password"}
@@ -288,6 +321,7 @@ export default function Inscription(): React.JSX.Element {
                         autoComplete="new-password"
                         className="w-full h-11 pl-10 pr-11 rounded-lg border border-slate-200 bg-slate-50/50 text-on-surface font-body-md text-body-md placeholder:text-outline/60 focus:bg-white focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all duration-200 aria-invalid:border-red-400 aria-invalid:bg-red-50/40"
                         id="confirm-password"
+                        minLength={6}
                         name="password_confirm"
                         onChange={() => clearError("password_confirm")}
                         placeholder="Confirmez votre mot de passe"

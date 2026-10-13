@@ -22,5 +22,9 @@ export const AUTH_PATHS = {
   register: `${API_PREFIX}/auth/register/`,
   refresh: `${API_PREFIX}/auth/refresh/`,
   logout: `${API_PREFIX}/auth/logout/`,
+  passwordReset: `${API_PREFIX}/auth/password-reset/`,
+  passwordResetConfirm: `${API_PREFIX}/auth/password-reset/confirm/`,
+  verifyEmail: `${API_PREFIX}/auth/verify-email/`,
+  resendVerification: `${API_PREFIX}/auth/resend-verification/`,
   me: `${API_PREFIX}/users/me/`,
 } as const;

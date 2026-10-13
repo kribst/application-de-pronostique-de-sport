@@ -408,7 +408,7 @@ function Header({ user }: { user: AuthUser }) {
           <div className="profile">
             <div className="profile-info">
               <div className="profile-name">
-                <strong>{user.email}</strong>
+                <strong>{user.username}</strong>
                 <span>{roleLabel(user)}</span>
               </div>
 
@@ -955,7 +955,7 @@ export default function DashboardClient({ user }: { user: AuthUser }) {
             <section className="welcome-section">
               <div>
                 <div className="welcome-title">
-                  <h1>Bonjour {user.email}</h1>
+                  <h1>Bonjour {user.username}</h1>
                   <span>👋</span>
 
                   <div className="terminal-badge">

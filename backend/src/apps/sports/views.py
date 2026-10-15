@@ -32,7 +32,7 @@ class CountryViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class CompetitionViewSet(viewsets.ReadOnlyModelViewSet):
-    """Filtres : ?sport=<slug>&country=<code>."""
+    """Filtres : ?sport=<slug>&country=<code>&tier=<n>&search=<texte>."""
 
     def get_queryset(self):
         qs = (
@@ -53,6 +53,10 @@ class CompetitionViewSet(viewsets.ReadOnlyModelViewSet):
             qs = qs.filter(sport__slug=sport)
         if country := params.get("country"):
             qs = qs.filter(country__code__iexact=country)
+        if (tier := params.get("tier")) and tier.isdigit():
+            qs = qs.filter(tier=int(tier))
+        if search := params.get("search"):
+            qs = qs.filter(name__icontains=search)
         return qs
 
     def get_serializer_class(self):

@@ -73,3 +73,21 @@ class ReferentialApiTests(APITestCase):
         football = Sport.objects.get(slug="football")
         r = self.client.get(reverse("sport-markets", args=[football.pk]))
         self.assertIn("1X2", [m["market_type"] for m in r.data])
+
+
+class ExtraFiltersTests(APITestCase):
+    def setUp(self):
+        cache.clear()
+        call_command("seed_football", verbosity=0)
+        self.client.force_authenticate(
+            CustomUser.objects.create_user("f@x.com", "S3cure-pass-2026!", username="f-test")
+        )
+
+    def test_search_by_name(self):
+        r = self.client.get(reverse("competition-list"), {"search": "ligue"})
+        self.assertTrue(all("ligue" in c["name"].lower() for c in r.data["results"]))
+        self.assertGreaterEqual(r.data["count"], 1)
+
+    def test_filter_by_tier(self):
+        r = self.client.get(reverse("competition-list"), {"tier": "1"})
+        self.assertTrue(all(c["tier"] == 1 for c in r.data["results"]))

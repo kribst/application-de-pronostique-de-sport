@@ -1,6 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import React, { useState } from "react";
 
 import { hasPremiumAccess, roleLabel, type AuthUser } from "@/lib/auth-types";
@@ -102,8 +103,15 @@ const matches: Match[] = [
   },
 ];
 
+const navHrefs: Record<string, string> = {
+  Dashboard: "/dashboard",
+  Sports: "/sports",
+  "Compétitions": "/competitions",
+};
+
 const navItems = [
   ["query_stats", "Dashboard"],
+  ["sports_soccer", "Sports"],
   ["sports_soccer", "Matchs"],
   ["trophy", "Compétitions"],
   ["shield", "Équipes"],
@@ -280,6 +288,8 @@ function MatchCard({ match }: { match: Match }) {
 }
 
 function Sidebar() {
+  const pathname = usePathname();
+
   return (
     <aside className="sidebar">
       <div className="sidebar-content">
@@ -300,25 +310,41 @@ function Sidebar() {
           </div>
 
           <nav className="main-nav">
-            {navItems.map(([icon, label, badge], index) => (
-              <a
-                href="#"
-                key={label}
-                className={`nav-item ${index === 0 ? "active" : ""}`}
-              >
-                <div className="nav-item-left">
-                  <MaterialIcon>{icon}</MaterialIcon>
-                  <span>{label}</span>
-                </div>
+            {navItems.map(([icon, label, badge]) => {
+              const href = navHrefs[label];
+              const active =
+                href !== undefined &&
+                (pathname === href || pathname.startsWith(`${href}/`));
+              const content = (
+                <>
+                  <div className="nav-item-left">
+                    <MaterialIcon>{icon}</MaterialIcon>
+                    <span>{label}</span>
+                  </div>
 
-                {badge && (
-                  <span className="pro-badge">
-                    <MaterialIcon>lock</MaterialIcon>
-                    {badge}
-                  </span>
-                )}
-              </a>
-            ))}
+                  {badge && (
+                    <span className="pro-badge">
+                      <MaterialIcon>lock</MaterialIcon>
+                      {badge}
+                    </span>
+                  )}
+                </>
+              );
+
+              return href ? (
+                <Link
+                  href={href}
+                  key={label}
+                  className={`nav-item ${active ? "active" : ""}`}
+                >
+                  {content}
+                </Link>
+              ) : (
+                <div key={label} className="nav-item" aria-disabled="true">
+                  {content}
+                </div>
+              );
+            })}
           </nav>
 
           <div className="nav-section-title soon-title">

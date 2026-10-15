@@ -35,7 +35,7 @@ jobs:
         run: python src/manage.py check
 
       - name: Run Django tests
-        run: python src/manage.py test apps.users
+        run: python src/manage.py test apps.users apps.sports
 
   frontend:
     name: Frontend checks

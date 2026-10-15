@@ -1,7 +1,8 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
-import { getSiteContent, saveSiteContent, resetSiteContent, type SiteContent, type SiteContentResponse } from "./siteContentApi";
+import { getSiteContent, saveSiteContent, resetSiteContent } from "./siteContentApi";
+import type { SiteContent } from "../../types";
 
 interface SiteContentContextValue {
   content: SiteContent;

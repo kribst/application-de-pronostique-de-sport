@@ -24,9 +24,9 @@ User = get_user_model()
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ("id", "email", "username", "role", "locale", "timezone", "is_verified", "date_joined")
+        fields = ("id", "email", "username", "role", "locale", "timezone", "is_verified", "is_active", "is_staff", "is_superuser", "date_joined")
         # Seuls locale et timezone sont modifiables par l'utilisateur.
-        read_only_fields = ("id", "email", "role", "is_verified", "date_joined")
+        read_only_fields = ("id", "email", "role", "is_verified", "is_active", "is_staff", "is_superuser", "date_joined")
 
 
 class RegisterSerializer(serializers.ModelSerializer):

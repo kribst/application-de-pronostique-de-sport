@@ -37,10 +37,12 @@ urlpatterns = [
     path("api/v1/health/", include("apps.providers.urls_health")),
     # Auth JWT (roadmap phase 1 : Authentification & roles).
     path("api/v1/auth/", include("apps.users.auth_urls")),
+    # Session Django independante reservee a l'interface superutilisateur.
+    path("api/v1/admin/", include("apps.users.admin_urls")),
     # Apps metier (squelettes : urlpatterns vides, montes ici des maintenant
     # pour figer les prefixes /api/v1/<domaine>/ de la roadmap).
     path("api/v1/users/", include("apps.users.urls")),
-    path("api/v1/sports/", include("apps.sports.urls")),
+    path("api/v1/", include("apps.sports.urls")),
     path("api/v1/matches/", include("apps.matches.urls")),
     path("api/v1/odds/", include("apps.odds.urls")),
     path("api/v1/providers/", include("apps.providers.urls")),

@@ -7,6 +7,9 @@ export type AuthUser = {
   locale: string;
   timezone: string;
   is_verified: boolean;
+  is_active: boolean;
+  is_staff: boolean;
+  is_superuser: boolean;
   date_joined: string;
 };
 

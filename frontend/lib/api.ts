@@ -28,3 +28,9 @@ export const AUTH_PATHS = {
   resendVerification: `${API_PREFIX}/auth/resend-verification/`,
   me: `${API_PREFIX}/users/me/`,
 } as const;
+
+export const ADMIN_API_PATHS = {
+  sports: `${API_PREFIX}/sports/`,
+  countries: `${API_PREFIX}/countries/`,
+  competitions: `${API_PREFIX}/competitions/`,
+} as const;

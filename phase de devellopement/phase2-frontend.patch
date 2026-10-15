@@ -1,0 +1,621 @@
+diff --git a/frontend/app/competitions/[id]/page.tsx b/frontend/app/competitions/[id]/page.tsx
+new file mode 100644
+index 0000000..aaf4862
+--- /dev/null
++++ b/frontend/app/competitions/[id]/page.tsx
+@@ -0,0 +1,61 @@
++import Link from "next/link";
++import { notFound } from "next/navigation";
++
++import AuthedPage from "@/components/layout/AuthedPage";
++import { EmptyState } from "@/components/ui/State";
++import { DjangoError } from "@/lib/django";
++import { getCompetition, type CompetitionDetail } from "@/lib/referential";
++
++export const dynamic = "force-dynamic";
++
++export default async function CompetitionDetailPage({
++  params,
++}: {
++  params: Promise<{ id: string }>;
++}) {
++  const { id } = await params;
++
++  let competition: CompetitionDetail;
++  try {
++    competition = await getCompetition(id);
++  } catch (error) {
++    if (error instanceof DjangoError && error.status === 404) notFound();
++    throw error;
++  }
++
++  return (
++    <AuthedPage>
++      <Link href="/competitions" className="text-body-sm font-semibold text-primary">
++        ← Compétitions
++      </Link>
++      <h1 className="mt-2 text-headline-lg font-bold text-on-surface">{competition.name}</h1>
++      <p className="mt-1 text-body-md text-on-surface-variant">
++        {competition.country?.name ?? "International"} · Niveau {competition.tier}
++      </p>
++
++      <h2 className="mt-space-md mb-3 text-headline-sm font-semibold">Saisons</h2>
++      <ul className="flex flex-wrap gap-2">
++        {competition.seasons.map((s) => (
++          <li
++            key={s.id}
++            className={`rounded-full border px-3 py-1 text-body-sm ${
++              s.is_current
++                ? "border-primary bg-primary-container text-primary"
++                : "border-outline-variant bg-white text-on-surface-variant"
++            }`}
++          >
++            {s.label}
++            {s.is_current && " · en cours"}
++          </li>
++        ))}
++      </ul>
++
++      <div className="mt-space-md rounded-2xl border border-outline-variant bg-white">
++        <EmptyState
++          title="Classement et calendrier"
++          message="Ils s'afficheront ici dès que les matchs seront en base (Phase 4)."
++        />
++      </div>
++    </AuthedPage>
++  );
++}
+diff --git a/frontend/app/competitions/page.tsx b/frontend/app/competitions/page.tsx
+new file mode 100644
+index 0000000..9c2a09a
+--- /dev/null
++++ b/frontend/app/competitions/page.tsx
+@@ -0,0 +1,102 @@
++import Link from "next/link";
++
++import AuthedPage from "@/components/layout/AuthedPage";
++import { EmptyState, ErrorState } from "@/components/ui/State";
++import {
++  getCompetitions,
++  getCountries,
++  type Competition,
++  type Country,
++} from "@/lib/referential";
++
++export const dynamic = "force-dynamic";
++
++type SearchParams = Promise<{ sport?: string; country?: string }>;
++
++function pill(active: boolean) {
++  return `rounded-full border px-3 py-1 text-body-sm font-medium ${
++    active
++      ? "border-primary bg-primary-container text-primary"
++      : "border-outline-variant bg-white text-on-surface-variant"
++  }`;
++}
++
++export default async function CompetitionsPage({
++  searchParams,
++}: {
++  searchParams: SearchParams;
++}) {
++  const { sport, country } = await searchParams;
++
++  let competitions: Competition[] = [];
++  let countries: Country[] = [];
++  let error: string | null = null;
++
++  try {
++    [competitions, countries] = await Promise.all([
++      getCompetitions({ sport, country }),
++      getCountries(),
++    ]);
++  } catch {
++    error = "Impossible de charger les compétitions. Réessaie dans un instant.";
++  }
++
++  const withSport = (code?: string) => {
++    const qs = new URLSearchParams();
++    if (sport) qs.set("sport", sport);
++    if (code) qs.set("country", code);
++    const s = qs.toString();
++    return s ? `/competitions?${s}` : "/competitions";
++  };
++
++  return (
++    <AuthedPage>
++      <h1 className="text-headline-lg font-bold text-on-surface">Compétitions</h1>
++
++      <div className="mt-4 mb-space-md flex flex-wrap gap-2">
++        <Link href={withSport()} className={pill(!country)}>
++          Tous les pays
++        </Link>
++        {countries.map((c) => (
++          <Link
++            key={c.id}
++            href={withSport(c.code)}
++            className={pill(country?.toLowerCase() === c.code.toLowerCase())}
++          >
++            {c.name}
++          </Link>
++        ))}
++      </div>
++
++      {error ? (
++        <ErrorState title="Erreur" message={error} />
++      ) : competitions.length === 0 ? (
++        <EmptyState
++          title="Aucune compétition"
++          message="Aucune compétition ne correspond à ces filtres."
++        />
++      ) : (
++        <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
++          {competitions.map((c) => (
++            <li key={c.id}>
++              <Link
++                href={`/competitions/${c.id}`}
++                className="block rounded-2xl border border-outline-variant bg-white p-5 transition hover:border-primary"
++              >
++                <h2 className="text-headline-sm font-semibold text-on-surface">{c.name}</h2>
++                <p className="mt-1 text-body-sm text-on-surface-variant">
++                  {c.country?.name ?? "International"} · Niveau {c.tier}
++                </p>
++                {c.current_season && (
++                  <p className="mt-3 text-body-sm font-medium text-primary">
++                    Saison {c.current_season.label}
++                  </p>
++                )}
++              </Link>
++            </li>
++          ))}
++        </ul>
++      )}
++    </AuthedPage>
++  );
++}
+diff --git a/frontend/app/sports/page.tsx b/frontend/app/sports/page.tsx
+new file mode 100644
+index 0000000..423e7bf
+--- /dev/null
++++ b/frontend/app/sports/page.tsx
+@@ -0,0 +1,66 @@
++import Link from "next/link";
++
++import AuthedPage from "@/components/layout/AuthedPage";
++import { ErrorState } from "@/components/ui/State";
++import { getSports, type Sport } from "@/lib/referential";
++
++export const dynamic = "force-dynamic";
++
++export default async function SportsPage() {
++  let sports: Sport[] = [];
++  let error: string | null = null;
++
++  try {
++    sports = await getSports();
++  } catch {
++    error = "Impossible de charger les sports. Réessaie dans un instant.";
++  }
++
++  return (
++    <AuthedPage>
++      <h1 className="text-headline-lg font-bold text-on-surface">Sports</h1>
++      <p className="mt-1 mb-space-md text-body-md text-on-surface-variant">
++        Le football est actif ; les autres sports arrivent dans les versions suivantes.
++      </p>
++
++      {error ? (
++        <ErrorState title="Erreur" message={error} />
++      ) : (
++        <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
++          {sports.map((sport) => (
++            <li
++              key={sport.id}
++              className={`rounded-2xl border border-outline-variant bg-white p-5 ${
++                sport.is_active ? "" : "opacity-60"
++              }`}
++            >
++              <div className="flex items-center justify-between">
++                <h2 className="text-headline-sm font-semibold">{sport.name}</h2>
++                <span
++                  className={`rounded-full px-2.5 py-0.5 text-label-sm font-semibold ${
++                    sport.is_active
++                      ? "bg-primary-container text-primary"
++                      : "bg-surface-container text-on-surface-variant"
++                  }`}
++                >
++                  {sport.is_active ? "Actif" : "Bientôt"}
++                </span>
++              </div>
++              <p className="mt-1 text-body-sm text-on-surface-variant">
++                {sport.sport_type === "TEAM" ? "Sport collectif" : "Sport individuel"}
++              </p>
++              {sport.is_active && (
++                <Link
++                  href={`/competitions?sport=${sport.slug}`}
++                  className="mt-4 inline-block text-body-sm font-semibold text-primary"
++                >
++                  Voir les compétitions →
++                </Link>
++              )}
++            </li>
++          ))}
++        </ul>
++      )}
++    </AuthedPage>
++  );
++}
+diff --git a/frontend/components/layout/AppShell.tsx b/frontend/components/layout/AppShell.tsx
+new file mode 100644
+index 0000000..0139a38
+--- /dev/null
++++ b/frontend/components/layout/AppShell.tsx
+@@ -0,0 +1,194 @@
++"use client";
++
++import Link from "next/link";
++import { usePathname, useRouter, useSearchParams } from "next/navigation";
++import { useState, type ReactNode } from "react";
++
++import { hasPremiumAccess, roleLabel, type AuthUser } from "@/lib/auth-types";
++import type { Sport } from "@/lib/referential";
++import "@/app/dashboard/dashboard.css";
++
++type NavItem = { icon: string; label: string; href?: string; pro?: boolean };
++
++/** Les entrees sans `href` sont des modules des phases suivantes. */
++const NAV_ITEMS: NavItem[] = [
++  { icon: "query_stats", label: "Dashboard", href: "/dashboard" },
++  { icon: "sports_soccer", label: "Sports", href: "/sports" },
++  { icon: "trophy", label: "Compétitions", href: "/competitions" },
++  { icon: "shield", label: "Équipes" },
++  { icon: "trending_up", label: "Value bets", pro: true },
++  { icon: "account_tree", label: "Combinaisons" },
++  { icon: "filter_center_focus", label: "Cote cible" },
++  { icon: "history", label: "Historique" },
++];
++
++function Icon({ children }: { children: ReactNode }) {
++  return <span className="material-symbols-outlined">{children}</span>;
++}
++
++function isActive(pathname: string, href: string) {
++  return pathname === href || pathname.startsWith(`${href}/`);
++}
++
++function Sidebar() {
++  const pathname = usePathname();
++
++  return (
++    <aside className="sidebar">
++      <div className="sidebar-content">
++        <div className="brand">
++          <div className="brand-logo">
++            <span className="brand-mark">P</span>
++          </div>
++          <div>
++            <span className="brand-name">Pronostique</span>
++            <span className="brand-subtitle">Quant Engine</span>
++          </div>
++        </div>
++
++        <div className="sidebar-scroll">
++          <div className="nav-section-title">Analytique Quantitative</div>
++          <nav className="main-nav">
++            {NAV_ITEMS.map((item) => {
++              const body = (
++                <>
++                  <div className="nav-item-left">
++                    <Icon>{item.icon}</Icon>
++                    <span>{item.label}</span>
++                  </div>
++                  {item.pro && (
++                    <span className="pro-badge">
++                      <Icon>lock</Icon>Pro
++                    </span>
++                  )}
++                </>
++              );
++
++              return item.href ? (
++                <Link
++                  key={item.label}
++                  href={item.href}
++                  className={`nav-item ${isActive(pathname, item.href) ? "active" : ""}`}
++                >
++                  {body}
++                </Link>
++              ) : (
++                <div key={item.label} className="nav-item" aria-disabled="true">
++                  {body}
++                </div>
++              );
++            })}
++          </nav>
++        </div>
++      </div>
++    </aside>
++  );
++}
++
++/** Selecteur de sport alimente par l'API : les sports inactifs sont grises. */
++function SportSwitcher({ sports }: { sports: Sport[] }) {
++  const params = useSearchParams();
++  const firstActive = sports.find((s) => s.is_active)?.slug;
++  const current = params.get("sport") ?? firstActive;
++
++  return (
++    <div className="sport-switcher">
++      {sports.slice(0, 4).map((sport) =>
++        sport.is_active ? (
++          <Link
++            key={sport.id}
++            href={`/competitions?sport=${sport.slug}`}
++            className={sport.slug === current ? "sport-active" : ""}
++          >
++            {sport.slug === current && <span />}
++            {sport.name}
++          </Link>
++        ) : (
++          <button key={sport.id} type="button" disabled>
++            {sport.name} <small>(Bientôt)</small>
++          </button>
++        )
++      )}
++    </div>
++  );
++}
++
++function Header({ user, sports }: { user: AuthUser; sports: Sport[] }) {
++  const router = useRouter();
++  const [signingOut, setSigningOut] = useState(false);
++
++  const signOut = async () => {
++    setSigningOut(true);
++    try {
++      await fetch("/api/auth/logout", { method: "POST" });
++    } finally {
++      router.replace("/");
++      router.refresh();
++    }
++  };
++
++  return (
++    <header className="dashboard-header">
++      <div className="header-main">
++        <div className="header-left">
++          <SportSwitcher sports={sports} />
++        </div>
++        <div className="header-right">
++          <div className="profile">
++            <div className="profile-info">
++              <div className="profile-name">
++                <strong>{user.username}</strong>
++                <span>{roleLabel(user)}</span>
++              </div>
++            </div>
++            {hasPremiumAccess(user) ? null : (
++              <button className="premium-button" type="button">
++                Passer Premium
++              </button>
++            )}
++            <button
++              className="signout-button"
++              disabled={signingOut}
++              onClick={signOut}
++              title="Se déconnecter"
++              type="button"
++            >
++              <Icon>logout</Icon>
++              <span className="signout-label">
++                {signingOut ? "Déconnexion..." : "Déconnexion"}
++              </span>
++            </button>
++          </div>
++        </div>
++      </div>
++      <div className="responsible-bar">
++        <Icon>gavel</Icon>
++        <span>
++          Les pronostics sont des probabilités, jamais des certitudes. 18+ · Jouez de façon responsable.
++        </span>
++      </div>
++    </header>
++  );
++}
++
++export default function AppShell({
++  user,
++  sports,
++  children,
++}: {
++  user: AuthUser;
++  sports: Sport[];
++  children: ReactNode;
++}) {
++  return (
++    <div className="dashboard">
++      <Sidebar />
++      <div className="dashboard-content">
++        <Header user={user} sports={sports} />
++        <main className="main-content">
++          <div className="dashboard-container">{children}</div>
++        </main>
++      </div>
++    </div>
++  );
++}
+diff --git a/frontend/components/layout/AuthedPage.tsx b/frontend/components/layout/AuthedPage.tsx
+new file mode 100644
+index 0000000..44e8fdd
+--- /dev/null
++++ b/frontend/components/layout/AuthedPage.tsx
+@@ -0,0 +1,26 @@
++import { redirect } from "next/navigation";
++import type { ReactNode } from "react";
++
++import { currentUser } from "@/lib/session";
++import { getSports, type Sport } from "@/lib/referential";
++
++import AppShell from "./AppShell";
++
++/** Page reservee aux connectes : charge l'utilisateur et les sports puis rend le shell. */
++export default async function AuthedPage({ children }: { children: ReactNode }) {
++  const user = await currentUser();
++  if (!user) redirect("/auth/login");
++
++  let sports: Sport[] = [];
++  try {
++    sports = await getSports();
++  } catch {
++    // Le selecteur reste vide si l'API est indisponible ; la page affiche sa propre erreur.
++  }
++
++  return (
++    <AppShell user={user} sports={sports}>
++      {children}
++    </AppShell>
++  );
++}
+diff --git a/frontend/lib/referential.ts b/frontend/lib/referential.ts
+new file mode 100644
+index 0000000..2caa963
+--- /dev/null
++++ b/frontend/lib/referential.ts
+@@ -0,0 +1,100 @@
++import { redirect } from "next/navigation";
++
++import { API_PREFIX } from "./api";
++import { DjangoError, djangoFetch } from "./django";
++import { isAccessTokenExpired } from "./jwt";
++import { readTokens } from "./session";
++
++/**
++ * Lecture du referentiel sportif (phase 2), cote serveur uniquement.
++ * Le token JWT est lu dans le cookie httpOnly : il ne traverse jamais le navigateur.
++ */
++
++export type Paginated<T> = {
++  count: number;
++  next: string | null;
++  previous: string | null;
++  results: T[];
++};
++
++export type Sport = {
++  id: string;
++  name: string;
++  slug: string;
++  sport_type: "TEAM" | "INDIVIDUAL";
++  is_active: boolean;
++  position: number;
++};
++
++export type Country = { id: string; name: string; code: string };
++
++export type Season = {
++  id: string;
++  label: string;
++  year_start: number;
++  year_end: number;
++  is_current: boolean;
++};
++
++export type Competition = {
++  id: string;
++  name: string;
++  slug: string;
++  tier: number;
++  sport: string; // slug du sport
++  country: Country | null;
++  current_season: Season | null;
++};
++
++export type CompetitionDetail = Competition & { seasons: Season[] };
++
++type Query = Record<string, string | undefined>;
++
++async function authedGet<T>(path: string, query: Query = {}): Promise<T> {
++  const { access } = await readTokens();
++  if (!access || isAccessTokenExpired(access)) redirect("/auth/login");
++
++  const params = new URLSearchParams();
++  for (const [key, value] of Object.entries(query)) {
++    if (value) params.set(key, value);
++  }
++  const qs = params.size ? `?${params.toString()}` : "";
++
++  try {
++    const { data } = await djangoFetch(`${API_PREFIX}${path}${qs}`, {
++      headers: { Authorization: `Bearer ${access}` },
++    });
++    return data as T;
++  } catch (error) {
++    if (error instanceof DjangoError && error.status === 401) {
++      redirect("/auth/login");
++    }
++    throw error;
++  }
++}
++
++/** Suit la pagination DRF (PAGE_SIZE 25) jusqu'a la derniere page. */
++async function fetchAll<T>(path: string, query: Query = {}): Promise<T[]> {
++  const items: T[] = [];
++
++  for (let page = 1; page <= 20; page += 1) {
++    const data = await authedGet<Paginated<T>>(path, {
++      ...query,
++      page: String(page),
++    });
++    items.push(...data.results);
++    if (!data.next) break;
++  }
++
++  return items;
++}
++
++export const getSports = () => fetchAll<Sport>("/sports/");
++
++export const getCountries = () => fetchAll<Country>("/countries/");
++
++export const getCompetitions = (filters: { sport?: string; country?: string } = {}) =>
++  fetchAll<Competition>("/competitions/", filters);
++
++export const getCompetition = (id: string) =>
++  authedGet<CompetitionDetail>(`/competitions/${id}/`);
+diff --git a/frontend/proxy.ts b/frontend/proxy.ts
+index f2940ea..4a8281c 100644
+--- a/frontend/proxy.ts
++++ b/frontend/proxy.ts
+@@ -33,14 +33,18 @@ function isAuthPage(pathname: string): boolean {
+   );
+ }
+ 
++/** Pages reservees aux utilisateurs connectes. */
++const PROTECTED_PREFIXES = ["/dashboard", "/sports", "/competitions"];
++
++function isProtected(pathname: string): boolean {
++  return PROTECTED_PREFIXES.some((prefix) => matchesPrefix(pathname, prefix));
++}
++
+ function redirectTo(request: NextRequest, target: string): NextResponse {
+   const url = new URL(target, request.url);
+ 
+   // Destination memorisee pour y revenir apres connexion.
+-  if (
+-    target === "/auth/login" &&
+-    matchesPrefix(request.nextUrl.pathname, "/dashboard")
+-  ) {
++  if (target === "/auth/login" && isProtected(request.nextUrl.pathname)) {
+     url.searchParams.set("next", request.nextUrl.pathname);
+   }
+ 
+@@ -84,7 +88,7 @@ export async function proxy(request: NextRequest) {
+     return NextResponse.redirect(new URL("/dashboard", request.url));
+   }
+ 
+-  if (matchesPrefix(pathname, "/dashboard") && !authenticated) {
++  if (isProtected(pathname) && !authenticated) {
+     return redirectTo(request, "/auth/login");
+   }
+ 

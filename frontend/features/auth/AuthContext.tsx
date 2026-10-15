@@ -36,8 +36,34 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
+async function fetchUser(accessToken: string) {
+    try {
+      const response = await fetch("/api/auth/me", {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!response.ok) return null;
+      const data = await response.json();
+      return {
+        id: data.user?.id || data.id,
+        email: data.user?.email || data.email,
+        username: data.user?.username || data.username,
+        role: data.user?.role || "USER",
+        locale: data.user?.locale || "",
+        timezone: data.user?.timezone || "",
+        is_verified: data.user?.is_verified || false,
+        is_active: data.user?.is_active || false,
+        is_staff: data.user?.is_staff || false,
+        is_superuser: data.user?.is_superuser || false,
+      };
+    } catch {
+      return null;
+    }
+  }
+
   useEffect(() => {
-    const storedToken = typeof window !== "undefined" ? localStorage.getItem("sp_access") : null;
+    const storedToken =
+      typeof window !== "undefined" ? localStorage.getItem("sp_access") : null;
+
     if (storedToken) {
       fetchUser(storedToken).then((userData) => {
         setUser(userData);
@@ -54,30 +80,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setIsLoading(false);
     }
   }, []);
-
-   async function fetchUser(accessToken: string) {
-     try {
-       const response = await fetch("/api/auth/me", {
-         headers: { Authorization: `Bearer ${accessToken}` },
-       });
-       if (!response.ok) return null;
-       const data = await response.json();
-       return {
-         id: data.user?.id || data.id,
-         email: data.user?.email || data.email,
-         username: data.user?.username || data.username,
-         role: data.user?.role || "USER",
-         locale: data.user?.locale || "",
-         timezone: data.user?.timezone || "",
-         is_verified: data.user?.is_verified || false,
-         is_active: data.user?.is_active || false,
-         is_staff: data.user?.is_staff || false,
-         is_superuser: data.user?.is_superuser || false,
-       };
-     } catch {
-       return null;
-     }
-   }
 
   async function login(email: string, password: string) {
     const response = await fetch("/api/auth/login", {

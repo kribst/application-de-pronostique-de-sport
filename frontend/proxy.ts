@@ -33,14 +33,18 @@ function isAuthPage(pathname: string): boolean {
   );
 }
 
+/** Pages reservees aux utilisateurs connectes. */
+const PROTECTED_PREFIXES = ["/dashboard", "/sports", "/competitions"];
+
+function isProtected(pathname: string): boolean {
+  return PROTECTED_PREFIXES.some((prefix) => matchesPrefix(pathname, prefix));
+}
+
 function redirectTo(request: NextRequest, target: string): NextResponse {
   const url = new URL(target, request.url);
 
   // Destination memorisee pour y revenir apres connexion.
-  if (
-    target === "/auth/login" &&
-    matchesPrefix(request.nextUrl.pathname, "/dashboard")
-  ) {
+  if (target === "/auth/login" && isProtected(request.nextUrl.pathname)) {
     url.searchParams.set("next", request.nextUrl.pathname);
   }
 
@@ -84,7 +88,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  if (matchesPrefix(pathname, "/dashboard") && !authenticated) {
+  if (isProtected(pathname) && !authenticated) {
     return redirectTo(request, "/auth/login");
   }
 

@@ -4,7 +4,7 @@ import { AUTH_PATHS } from "./api";
 import type { AuthUser } from "./auth-types";
 import { ACCESS_COOKIE, REFRESH_COOKIE } from "./cookies";
 import { djangoFetch } from "./django";
-import { isAccessTokenExpired, secondsUntilExpiry } from "./jwt";
+import { isAccessTokenExpired, secondsSinceIssuance, secondsUntilExpiry } from "./jwt";
 
 /** Lecture des tokens depuis les cookies httpOnly (cote serveur uniquement). */
 export async function readTokens(): Promise<{
@@ -19,11 +19,18 @@ export async function readTokens(): Promise<{
   };
 }
 
-/** Access token absent ou deja expire : la session est a renouveler. */
+/**
+ * Duree absolue au-dela de laquelle une session est refusee, meme si le token
+ * d'acces apparait encore valide. Un utilisateur ne peut pas rester connecte
+ * indefiniment : il doit se re-authentifier au moins tous les 30 jours.
+ */
+export const MAX_SESSION_AGE_SECONDS = 30 * 24 * 60 * 60;
+
+/** Access token absent, deja expire ou trop ancien : la session n'est plus utilisable. */
 export async function hasUsableAccessToken(): Promise<boolean> {
   const { access } = await readTokens();
 
-  return Boolean(access) && !isAccessTokenExpired(access);
+  return Boolean(access) && !isAccessTokenExpired(access) && secondsSinceIssuance(access) <= MAX_SESSION_AGE_SECONDS;
 }
 
 /**

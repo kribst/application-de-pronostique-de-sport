@@ -11,9 +11,10 @@ type LoginClientProps = {
   /** ?registered=1 : le compte vient d'etre cree, on invite a se connecter. */
   justRegistered: boolean;
   passwordReset: boolean;
+  next?: string;
 };
 
-const LoginClient = ({ justRegistered, passwordReset }: LoginClientProps) => {
+const LoginClient = ({ justRegistered, passwordReset, next }: LoginClientProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const [mousePosition, setMousePosition] = useState({
@@ -24,7 +25,7 @@ const LoginClient = ({ justRegistered, passwordReset }: LoginClientProps) => {
   const [resendPending, setResendPending] = useState(false);
   const [resendMessage, setResendMessage] = useState<string | null>(null);
   const { pending, message, fieldErrors, submit, clearError } =
-    useAuthForm("/api/auth/login");
+    useAuthForm("/api/auth/login", { next });
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();

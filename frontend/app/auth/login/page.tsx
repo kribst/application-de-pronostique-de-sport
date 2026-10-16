@@ -1,4 +1,7 @@
+import { redirect } from "next/navigation";
+
 import LoginClient from "./LoginClient";
+import { hasUsableAccessToken } from "@/lib/session";
 
 /**
  * Ecran de connexion.
@@ -11,14 +14,20 @@ import LoginClient from "./LoginClient";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ registered?: string; passwordReset?: string }>;
+  searchParams: Promise<{ registered?: string; passwordReset?: string; next?: string }>;
 }) {
-  const { registered, passwordReset } = await searchParams;
+  const authenticated = await hasUsableAccessToken();
+  if (authenticated) {
+    redirect("/dashboard");
+  }
+
+  const { registered, passwordReset, next } = await searchParams;
 
   return (
     <LoginClient
       justRegistered={registered === "1"}
       passwordReset={passwordReset === "1"}
+      next={next}
     />
   );
 }

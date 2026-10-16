@@ -4,7 +4,7 @@ import { AUTH_PATHS } from "./api";
 import type { AuthUser } from "./auth-types";
 import { ACCESS_COOKIE, REFRESH_COOKIE } from "./cookies";
 import { djangoFetch } from "./django";
-import { isAccessTokenExpired, secondsSinceIssuance, secondsUntilExpiry } from "./jwt";
+import { isAccessTokenExpired, secondsUntilExpiry } from "./jwt";
 
 /** Lecture des tokens depuis les cookies httpOnly (cote serveur uniquement). */
 export async function readTokens(): Promise<{
@@ -19,18 +19,11 @@ export async function readTokens(): Promise<{
   };
 }
 
-/**
- * Duree absolue au-dela de laquelle une session est refusee, meme si le token
- * d'acces apparait encore valide. Un utilisateur ne peut pas rester connecte
- * indefiniment : il doit se re-authentifier au moins tous les 30 jours.
- */
-export const MAX_SESSION_AGE_SECONDS = 30 * 24 * 60 * 60;
-
-/** Access token absent, deja expire ou trop ancien : la session n'est plus utilisable. */
+/** Access token absent ou deja expire : la session n'est plus utilisable telle quelle. */
 export async function hasUsableAccessToken(): Promise<boolean> {
   const { access } = await readTokens();
 
-  return Boolean(access) && !isAccessTokenExpired(access) && secondsSinceIssuance(access) <= MAX_SESSION_AGE_SECONDS;
+  return Boolean(access) && !isAccessTokenExpired(access);
 }
 
 /**
@@ -57,7 +50,7 @@ export async function getMe(access: string): Promise<AuthUser | null> {
  * remplacant, qu'il faut_absolument remstocker, sinon la session est
  * definitivement cassee.
  */
-export async function rotateRefresh(
+async function rotateRefreshOnce(
   refresh: string
 ): Promise<{ access: string; refresh: string } | null> {
   try {
@@ -100,4 +93,29 @@ export async function currentUser(): Promise<AuthUser | null> {
   if (!access || isAccessTokenExpired(access)) return null;
 
   return getMe(access);
+}
+
+/**
+ * Dedoublonne les renouvellements simultanes : plusieurs requetes arrivant
+ * avec le meme refresh token (navigations rapides, prechargement) partagent
+ * un seul appel a Django. Sans cela, la deuxieme est refusee (token deja
+ * revoque par la rotation) et deconnecterait l'utilisateur a tort.
+ */
+const inflightRotations = new Map<
+  string,
+  Promise<{ access: string; refresh: string } | null>
+>();
+const ROTATION_CACHE_MS = 10_000;
+
+export function rotateRefresh(
+  refresh: string
+): Promise<{ access: string; refresh: string } | null> {
+  const existing = inflightRotations.get(refresh);
+  if (existing) return existing;
+
+  const promise = rotateRefreshOnce(refresh);
+  inflightRotations.set(refresh, promise);
+  setTimeout(() => inflightRotations.delete(refresh), ROTATION_CACHE_MS);
+
+  return promise;
 }

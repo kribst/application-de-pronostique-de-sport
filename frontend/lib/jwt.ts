@@ -57,15 +57,3 @@ export function secondsUntilExpiry(token: string | undefined | null): number {
 export function isAccessTokenExpired(token: string | undefined | null): boolean {
   return secondsUntilExpiry(token) <= 0;
 }
-
-/**
- * Seconds ecoulees depuis la creation du jeton (claim iat). 0 si illisible.
- * Sert a borner dans le temps la duree d'une session, quelle que soit la
- * validite apparente du token.
- */
-export function secondsSinceIssuance(token: string | undefined | null): number {
-  const payload = decodeJwt(token);
-  if (!payload?.iat) return 0;
-
-  return Math.max(0, Math.floor(Date.now() / 1000) - payload.iat);
-}

@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 
 import { AUTH_PATHS } from "@/lib/api";
@@ -83,10 +84,44 @@ export function failureResponse(error: unknown): NextResponse {
  * Ecrit les cookies httpOnly et renvoie l'utilisateur au client.
  * Reserve a la connexion : l'inscription, elle, n'ouvre pas de session.
  */
-export function loginSuccessResponse(tokens: AuthTokens): NextResponse {
+/**
+ * Destination apres connexion : uniquement un chemin interne (pas d'URL
+ * externe, pas de "//", pas de retour vers les pages d'auth).
+ */
+export function safeNext(next: unknown): string {
+  if (
+    typeof next === "string" &&
+    next.startsWith("/") &&
+    !next.startsWith("//") &&
+    !next.includes("\\") &&
+    !next.startsWith("/auth") &&
+    !next.startsWith("/api")
+  ) {
+    return next;
+  }
+
+  return "/dashboard";
+}
+
+/**
+ * Transmet l'IP du visiteur a Django : sans cela, Django ne voit que l'IP du
+ * serveur Next et applique ses limites anti-abus a tous les utilisateurs
+ * ensemble. Django ne lit cet en-tete que si DJANGO_NUM_PROXIES >= 1.
+ */
+async function clientHeaders(): Promise<Record<string, string>> {
+  const incoming = await headers();
+  const forwarded = incoming.get("x-forwarded-for") ?? incoming.get("x-real-ip");
+
+  return forwarded ? { "X-Forwarded-For": forwarded } : {};
+}
+
+export function loginSuccessResponse(
+  tokens: AuthTokens,
+  next?: unknown
+): NextResponse {
   const response = NextResponse.json({
     ok: true,
-    redirectTo: "/dashboard",
+    redirectTo: safeNext(next),
     user: tokens.user satisfies AuthUser,
   });
 
@@ -105,12 +140,14 @@ export function loginSuccessResponse(tokens: AuthTokens): NextResponse {
  */
 export async function postLogin(body: unknown): Promise<NextResponse> {
   try {
+    const { next, ...credentials } = (body ?? {}) as Record<string, unknown>;
     const { data } = await djangoFetch(AUTH_PATHS.login, {
       method: "POST",
-      body: JSON.stringify(body),
+      body: JSON.stringify(credentials),
+      headers: await clientHeaders(),
     });
 
-    return loginSuccessResponse(data as AuthTokens);
+    return loginSuccessResponse(data as AuthTokens, next);
   } catch (error) {
     return failureResponse(error);
   }
@@ -129,6 +166,7 @@ export async function postRegister(body: unknown): Promise<NextResponse> {
     await djangoFetch(AUTH_PATHS.register, {
       method: "POST",
       body: JSON.stringify(body),
+      headers: await clientHeaders(),
     });
 
     // Aucune session ouverte : on renvoie l'utilisateur vers la connexion.
@@ -149,6 +187,7 @@ export async function postAuthAction(
     const { data } = await djangoFetch(path, {
       method: "POST",
       body: JSON.stringify(body),
+      headers: await clientHeaders(),
     });
     const payload =
       data && typeof data === "object" && !Array.isArray(data)

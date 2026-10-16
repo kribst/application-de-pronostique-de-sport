@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { ACCESS_COOKIE, clearAuthCookies, REFRESH_COOKIE, setAuthCookies } from "./lib/cookies";
-import { isAccessTokenExpired, secondsSinceIssuance, secondsUntilExpiry } from "./lib/jwt";
-import { cookieLifetimes, MAX_SESSION_AGE_SECONDS, rotateRefresh } from "./lib/session";
+import { ACCESS_COOKIE, REFRESH_COOKIE, setAuthCookies } from "./lib/cookies";
+import { isAccessTokenExpired, secondsUntilExpiry } from "./lib/jwt";
+import { cookieLifetimes, rotateRefresh } from "./lib/session";
 
 /**
  * Protection des routes et renouvellement de session.
@@ -55,78 +55,70 @@ function redirectTo(request: NextRequest, target: string): NextResponse {
   return NextResponse.redirect(url);
 }
 
+/** Duplique les nouveaux cookies dans la requete en cours et dans la reponse. */
+function withRotatedCookies(
+  request: NextRequest,
+  rotated: { access: string; refresh: string } | null,
+  build: (request: NextRequest) => NextResponse
+): NextResponse {
+  if (!rotated) return build(request);
+
+  // La requete en cours doit voir les nouveaux tokens : sans cela, les pages
+  // serveur liraient l'ancien cookie (absent ou expire) et renverraient vers
+  // /auth/login malgre un renouvellement reussi.
+  request.cookies.set(ACCESS_COOKIE, rotated.access);
+  request.cookies.set(REFRESH_COOKIE, rotated.refresh);
+
+  const response = build(request);
+  setAuthCookies(
+    response,
+    rotated.access,
+    rotated.refresh,
+    cookieLifetimes(rotated.access, rotated.refresh)
+  );
+
+  return response;
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const access = request.cookies.get(ACCESS_COOKIE)?.value;
   const refresh = request.cookies.get(REFRESH_COOKIE)?.value;
 
-  // Session trop ancienne : on la ferme et on renvoie vers l'ecran de
-  // connexion, sauf si on y est deja (boucle evitee).
-  const sessionTooOld = Boolean(
-    access && secondsSinceIssuance(access) > MAX_SESSION_AGE_SECONDS
-  );
-
-  if (sessionTooOld && !isAuthPage(pathname)) {
-    const response = redirectTo(request, "/auth/login");
-    clearAuthCookies(response);
-
-    return response;
-  }
-
-  let authenticated = Boolean(
-    access && !isAccessTokenExpired(access) && !sessionTooOld
-  );
+  let authenticated = Boolean(access && !isAccessTokenExpired(access));
   let rotated: { access: string; refresh: string } | null = null;
 
-  // Renouvellement anticipe quand le token approche de l'expiration.
-  // Django blackliste le refresh envoye et en retourne un nouveau, qu'il faut
-  // reecrire dans les cookies.
-  if (!sessionTooOld && refresh && access && secondsUntilExpiry(access) <= REFRESH_MARGIN_SECONDS) {
+  // Renouvellement quand l'access token est ABSENT (le cookie expire en meme
+  // temps que le token), expire ou proche de l'expiration. Django blackliste
+  // le refresh envoye et en retourne un nouveau, qu'il faut reecrire.
+  const needsRotation =
+    Boolean(refresh) && (!access || secondsUntilExpiry(access) <= REFRESH_MARGIN_SECONDS);
+
+  if (needsRotation && refresh) {
     rotated = await rotateRefresh(refresh);
+    authenticated = rotated !== null;
 
-    if (!rotated) {
-      // Refresh refuse : plus aucune session possible, on repart de zero.
-      const response = redirectTo(request, "/auth/login");
-      clearAuthCookies(response);
-
-      return response;
-    }
-
-    authenticated = true;
+    // En cas d'echec on NE supprime PAS les cookies : le refus peut venir
+    // d'une requete concurrente qui a deja renouvele la session, et les
+    // effacer ici ecraserait les cookies valides qu'elle vient d'ecrire.
+    // Un refresh reellement invalide expire de lui-meme et sera remplace a
+    // la prochaine connexion.
   }
 
   if (authenticated && isAuthPage(pathname)) {
-    const response = NextResponse.redirect(new URL("/dashboard", request.url));
-
-    if (rotated) {
-      setAuthCookies(
-        response,
-        rotated.access,
-        rotated.refresh,
-        cookieLifetimes(rotated.access, rotated.refresh)
-      );
-    }
-
-    return response;
+    return withRotatedCookies(request, rotated, () =>
+      NextResponse.redirect(new URL("/dashboard", request.url))
+    );
   }
 
   if (isProtected(pathname) && !authenticated) {
     return redirectTo(request, "/auth/login");
   }
 
-  const response = NextResponse.next();
-
-  if (rotated) {
-    setAuthCookies(
-      response,
-      rotated.access,
-      rotated.refresh,
-      cookieLifetimes(rotated.access, rotated.refresh)
-    );
-  }
-
-  return response;
+  return withRotatedCookies(request, rotated, (req) =>
+    NextResponse.next({ request: req })
+  );
 }
 
 export const config = {

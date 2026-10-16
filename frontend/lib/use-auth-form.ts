@@ -20,6 +20,7 @@ export function useAuthForm(
   options?: { next?: string }
 ) {
   const router = useRouter();
+  const next = options?.next;
 
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -47,7 +48,7 @@ export function useAuthForm(
         const response = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...body, next: options?.next ?? undefined }),
+          body: JSON.stringify({ ...body, next: next ?? undefined }),
         });
 
         const payload = (await response.json()) as AuthResponsePayload;
@@ -73,7 +74,7 @@ export function useAuthForm(
         setPending(false);
       }
     },
-    [endpoint, options?.next, router]
+    [endpoint, next, router]
   );
 
   return { pending, message, fieldErrors, submit, clearError };

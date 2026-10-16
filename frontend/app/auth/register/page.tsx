@@ -284,10 +284,10 @@ export default function Inscription(): React.JSX.Element {
                         autoComplete="new-password"
                         className="w-full h-11 pl-10 pr-11 rounded-lg border border-slate-200 bg-slate-50/50 text-on-surface font-body-md text-body-md placeholder:text-outline/60 focus:bg-white focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all duration-200 aria-invalid:border-red-400 aria-invalid:bg-red-50/40"
                         id="password"
-                        minLength={6}
+                        minLength={10}
                         name="password"
                         onChange={() => clearError("password")}
-                        placeholder="6 caractères minimum"
+                        placeholder="10 caractères minimum"
                         required
                         suppressHydrationWarning
                         type={showPassword ? "text" : "password"}
@@ -321,7 +321,7 @@ export default function Inscription(): React.JSX.Element {
                         autoComplete="new-password"
                         className="w-full h-11 pl-10 pr-11 rounded-lg border border-slate-200 bg-slate-50/50 text-on-surface font-body-md text-body-md placeholder:text-outline/60 focus:bg-white focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all duration-200 aria-invalid:border-red-400 aria-invalid:bg-red-50/40"
                         id="confirm-password"
-                        minLength={6}
+                        minLength={10}
                         name="password_confirm"
                         onChange={() => clearError("password_confirm")}
                         placeholder="Confirmez votre mot de passe"

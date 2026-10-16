@@ -1,5 +1,6 @@
 import React from "react";
 import "./home.css";
+import MobileMenu from "@/components/home/MobileMenu";
 
 const FormBadge = ({ value }: { value: string }) => {
   const className =
@@ -76,6 +77,8 @@ const SportPulseHome: React.FC = () => {
               <span>Créer un compte</span>
               <span className="material-symbols-outlined">arrow_forward</span>
             </a>
+
+            <MobileMenu />
           </div>
         </div>
       </header>

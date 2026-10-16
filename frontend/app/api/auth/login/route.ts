@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
  * navigateur ne recoit que `user`.
  */
 export async function POST(request: Request) {
-  let body: { email?: unknown; password?: unknown };
+  let body: { email?: unknown; password?: unknown; next?: unknown };
 
   try {
     body = await request.json();
@@ -40,5 +40,6 @@ export async function POST(request: Request) {
   return postLogin({
     email: body.email.trim(),
     password: body.password,
+    next: body.next,
   });
 }

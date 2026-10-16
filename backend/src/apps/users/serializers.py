@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import binascii
+import time
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
@@ -20,6 +21,9 @@ from .utils import get_client_ip, get_device
 
 User = get_user_model()
 
+# Duree absolue d'une session, quelle que soit l'activite (rotation comprise).
+MAX_SESSION_AGE_SECONDS = 30 * 24 * 3600
+
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -31,7 +35,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
-        write_only=True, min_length=6, style={"input_type": "password"}
+        write_only=True, min_length=10, style={"input_type": "password"}
     )
     password_confirm = serializers.CharField(write_only=True, style={"input_type": "password"})
     username = serializers.CharField(
@@ -84,6 +88,14 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 
 class LoginSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        # Date de la connexion initiale : ce claim est conserve a chaque
+        # rotation du refresh token, ce qui permet de borner la session.
+        token["auth_time"] = int(time.time())
+        return token
+
     def validate(self, attrs):
         attrs["email"] = attrs["email"].lower()
         data = super().validate(attrs)
@@ -109,6 +121,11 @@ class VerifiedTokenRefreshSerializer(TokenRefreshSerializer):
             user = User.objects.get(**{api_settings.USER_ID_FIELD: user_id})
         except (TokenError, User.DoesNotExist) as exc:
             raise InvalidToken({"detail": str(exc), "code": "token_not_valid"})
+        auth_time = refresh.get("auth_time")
+        if auth_time is not None and time.time() - auth_time > MAX_SESSION_AGE_SECONDS:
+            raise InvalidToken(
+                {"detail": "Session expiree, reconnectez-vous.", "code": "token_not_valid"}
+            )
         if not user.is_active or not user.is_verified:
             raise InvalidToken(
                 {"detail": "Compte inactif ou adresse email non confirmee.", "code": "token_not_valid"}

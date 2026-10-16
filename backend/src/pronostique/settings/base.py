@@ -52,6 +52,7 @@ env = environ.Env(
     DJANGO_SECURE_SSL_REDIRECT=(bool, False),
     DJANGO_SECURE_HSTS_SECONDS=(int, 0),
     DJANGO_ADMINS=(list, []),
+    DJANGO_NUM_PROXIES=(int, 0),
 )
 
 _ENV_FILE = Path(os.environ.get("ENV_FILE", PROJECT_ROOT / ".env"))
@@ -159,7 +160,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-        "OPTIONS": {"min_length": 6},
+        "OPTIONS": {"min_length": 10},
     },
     {
         "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
@@ -293,7 +294,11 @@ REST_FRAMEWORK = {
         "anon": "100/hour",
         "user": "1000/hour",
         "auth": "10/min",
+        "auth_email": "5/min",
     },
+    # Nombre de reverse proxies de confiance devant Django. 0 : X-Forwarded-For
+    # est ignore (valeur sure par defaut). En prod : DJANGO_NUM_PROXIES=1.
+    "NUM_PROXIES": env("DJANGO_NUM_PROXIES"),
 }
 
 # Durees de vie JWT pilotables par env (voir .env.example).

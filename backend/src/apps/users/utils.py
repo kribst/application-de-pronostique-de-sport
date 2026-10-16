@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
 import ipaddress
 
+from rest_framework.throttling import BaseThrottle
+
 
 def get_client_ip(request):
-    """IP du client (derriere un proxy : premiere valeur de X-Forwarded-For).
+    """IP du client, calculee comme le fait DRF pour ses limites (NUM_PROXIES).
 
-    Valeur falsifiable par le client : usage journal uniquement, jamais controle d'acces.
+    Avec NUM_PROXIES=0 (defaut), X-Forwarded-For est ignore : on ne fait
+    jamais confiance a un en-tete que le client peut falsifier. En production,
+    derriere N reverse proxies de confiance, regler DJANGO_NUM_PROXIES=N.
     """
-    forwarded = request.META.get("HTTP_X_FORWARDED_FOR")
-    candidate = forwarded.split(",")[0].strip() if forwarded else request.META.get("REMOTE_ADDR")
+    candidate = BaseThrottle().get_ident(request)
     try:
         return str(ipaddress.ip_address(candidate))
     except (ValueError, TypeError):

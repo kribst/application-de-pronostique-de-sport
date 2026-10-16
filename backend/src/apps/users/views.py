@@ -20,6 +20,7 @@ from .serializers import (
     VerifyEmailSerializer,
     VerifiedTokenRefreshSerializer,
 )
+from .throttles import EmailRateThrottle
 from .services import send_password_reset_email, send_verification_email
 
 User = get_user_model()
@@ -48,7 +49,7 @@ class RegisterView(generics.CreateAPIView):
 
 class LoginView(TokenObtainPairView):
     serializer_class = LoginSerializer
-    throttle_classes = [ScopedRateThrottle]
+    throttle_classes = [ScopedRateThrottle, EmailRateThrottle]
     throttle_scope = "auth"
 
 
@@ -108,7 +109,7 @@ class PasswordResetRequestView(generics.GenericAPIView):
     serializer_class = EmailOnlySerializer
     permission_classes = [AllowAny]
     authentication_classes = []
-    throttle_classes = [ScopedRateThrottle]
+    throttle_classes = [ScopedRateThrottle, EmailRateThrottle]
     throttle_scope = "auth"
 
     def post(self, request):
@@ -156,7 +157,7 @@ class ResendVerificationView(generics.GenericAPIView):
     serializer_class = EmailOnlySerializer
     permission_classes = [AllowAny]
     authentication_classes = []
-    throttle_classes = [ScopedRateThrottle]
+    throttle_classes = [ScopedRateThrottle, EmailRateThrottle]
     throttle_scope = "auth"
 
     def post(self, request):

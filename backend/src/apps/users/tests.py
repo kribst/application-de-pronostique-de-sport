@@ -63,20 +63,29 @@ class AuthFlowTests(APITestCase):
         self.assertEqual(second.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("username", second.data)
 
-    def test_register_rejects_password_shorter_than_six_characters(self):
+    def test_register_rejects_password_shorter_than_ten_characters(self):
         payload = register_payload(password="Ab3!x", password_confirm="Ab3!x")
         response = self.client.post(reverse("auth-register"), payload, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("password", response.data)
 
-    def test_register_accepts_six_character_password(self):
+    def test_register_rejects_nine_character_password(self):
+        response = self.client.post(
+            reverse("auth-register"),
+            register_payload(password="Ax5!qZ-9a", password_confirm="Ax5!qZ-9a"),
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("password", response.data)
+
+    def test_register_accepts_ten_character_password(self):
         response = self.client.post(
             reverse("auth-register"),
             register_payload(
-                "six-character@example.com",
-                username="six_char",
-                password="Ax5!qZ",
-                password_confirm="Ax5!qZ",
+                "ten-character@example.com",
+                username="ten_char",
+                password="Ax5!qZ-9a1",
+                password_confirm="Ax5!qZ-9a1",
             ),
             format="json",
         )
@@ -372,3 +381,67 @@ class RolePermissionTests(APITestCase):
         perm = IsAdminRole()
         self.assertFalse(perm.has_permission(self._request(Role.MODERATOR), None))
         self.assertTrue(perm.has_permission(self._request(Role.ADMIN), None))
+
+
+class AuthHardeningTests(APITestCase):
+    def setUp(self):
+        cache.clear()
+        self.user = CustomUser.objects.create_user(
+            "h@x.com", PASSWORD, username="hard-user", is_verified=True
+        )
+
+    def test_login_is_limited_per_email_even_when_ip_changes(self):
+        for _ in range(5):
+            self.client.post(
+                reverse("auth-login"),
+                {"email": "h@x.com", "password": "bad"},
+                format="json",
+                REMOTE_ADDR="10.0.0.1",
+            )
+        r = self.client.post(
+            reverse("auth-login"),
+            {"email": "H@X.com", "password": PASSWORD},
+            format="json",
+            REMOTE_ADDR="10.0.0.2",
+        )
+        self.assertEqual(r.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_forwarded_for_is_ignored_without_trusted_proxy(self):
+        self.client.post(
+            reverse("auth-login"),
+            {"email": "h@x.com", "password": PASSWORD},
+            format="json",
+            HTTP_X_FORWARDED_FOR="8.8.8.8",
+            REMOTE_ADDR="10.0.0.9",
+        )
+        self.assertEqual(LoginHistory.objects.get(user=self.user).ip, "10.0.0.9")
+
+    @override_settings(REST_FRAMEWORK={**__import__("django.conf").conf.settings.REST_FRAMEWORK, "NUM_PROXIES": 1})
+    def test_forwarded_for_is_used_with_one_trusted_proxy(self):
+        self.client.post(
+            reverse("auth-login"),
+            {"email": "h@x.com", "password": PASSWORD},
+            format="json",
+            HTTP_X_FORWARDED_FOR="8.8.8.8",
+            REMOTE_ADDR="10.0.0.9",
+        )
+        self.assertEqual(LoginHistory.objects.get(user=self.user).ip, "8.8.8.8")
+
+    def test_refresh_is_refused_after_absolute_session_age(self):
+        login = self.client.post(
+            reverse("auth-login"), {"email": "h@x.com", "password": PASSWORD}, format="json"
+        )
+        refresh = RefreshToken(login.data["refresh"])
+        self.assertIn("auth_time", refresh)
+        refresh["auth_time"] = int(__import__("time").time()) - 31 * 24 * 3600
+        r = self.client.post(reverse("auth-refresh"), {"refresh": str(refresh)}, format="json")
+        self.assertEqual(r.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_auth_time_survives_rotation(self):
+        login = self.client.post(
+            reverse("auth-login"), {"email": "h@x.com", "password": PASSWORD}, format="json"
+        )
+        first = RefreshToken(login.data["refresh"])["auth_time"]
+        r = self.client.post(reverse("auth-refresh"), {"refresh": login.data["refresh"]}, format="json")
+        self.assertEqual(r.status_code, status.HTTP_200_OK)
+        self.assertEqual(RefreshToken(r.data["refresh"])["auth_time"], first)

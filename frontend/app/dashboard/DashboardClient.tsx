@@ -287,11 +287,32 @@ function MatchCard({ match }: { match: Match }) {
   );
 }
 
-function Sidebar() {
+type SidebarProps = {
+  open: boolean;
+  onClose: () => void;
+};
+
+function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
 
+  React.useEffect(() => {
+    if (!open) return;
+
+    const handleKeydown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeydown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeydown);
+    };
+  }, [open, onClose]);
+
   return (
-    <aside className="sidebar">
+    <aside id="app-sidebar" className={`sidebar ${open ? "open" : ""}`}>
       <div className="sidebar-content">
         <div className="brand">
           <div className="brand-logo">
@@ -335,6 +356,7 @@ function Sidebar() {
                 <Link
                   href={href}
                   key={label}
+                  onClick={onClose}
                   className={`nav-item ${active ? "active" : ""}`}
                 >
                   {content}
@@ -373,7 +395,13 @@ function Sidebar() {
   );
 }
 
-function Header({ user }: { user: AuthUser }) {
+type HeaderProps = {
+  user: AuthUser;
+  open: boolean;
+  onMenuClick: () => void;
+};
+
+function Header({ user, open, onMenuClick }: HeaderProps) {
   const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
   const premium = hasPremiumAccess(user);
@@ -394,6 +422,9 @@ function Header({ user }: { user: AuthUser }) {
     <header className="dashboard-header">
       <div className="header-main">
         <div className="header-left">
+          <button type="button" className="menu-button" aria-label="Ouvrir le menu" aria-expanded={open} aria-controls="app-sidebar" onClick={onMenuClick}>
+            <MaterialIcon>menu</MaterialIcon>
+          </button>
           <div className="search-box">
             <MaterialIcon>search</MaterialIcon>
             <input
@@ -967,12 +998,16 @@ function CalibrationCard() {
 }
 
 export default function DashboardClient({ user }: { user: AuthUser }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
     <div className="dashboard">
-      <Sidebar />
+      <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
+
+      {menuOpen && <div className="sidebar-overlay" onClick={() => setMenuOpen(false)} aria-hidden="true" />}
 
       <div className="dashboard-content">
-        <Header user={user} />
+        <Header user={user} open={menuOpen} onMenuClick={() => setMenuOpen((v) => !v)} />
 
         <main className="main-content">
           <div className="dashboard-background" />

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 
 import { hasPremiumAccess, roleLabel, type AuthUser } from "@/lib/auth-types";
 import type { Sport } from "@/lib/referential";
@@ -30,11 +30,32 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function Sidebar() {
+type SidebarProps = {
+  open: boolean;
+  onClose: () => void;
+};
+
+function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
 
+  useEffect(() => {
+    if (!open) return;
+
+    const handleKeydown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeydown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeydown);
+    };
+  }, [open, onClose]);
+
   return (
-    <aside className="sidebar">
+    <aside id="app-sidebar" className={`sidebar ${open ? "open" : ""}`}>
       <div className="sidebar-content">
         <div className="brand">
           <div className="brand-logo">
@@ -68,6 +89,7 @@ function Sidebar() {
                 <Link
                   key={item.label}
                   href={item.href}
+                  onClick={onClose}
                   className={`nav-item ${isActive(pathname, item.href) ? "active" : ""}`}
                 >
                   {body}
@@ -113,7 +135,14 @@ function SportSwitcher({ sports }: { sports: Sport[] }) {
   );
 }
 
-function Header({ user, sports }: { user: AuthUser; sports: Sport[] }) {
+type HeaderProps = {
+  user: AuthUser;
+  sports: Sport[];
+  open: boolean;
+  onMenuClick: () => void;
+};
+
+function Header({ user, sports, open, onMenuClick }: HeaderProps) {
   const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
 
@@ -131,6 +160,9 @@ function Header({ user, sports }: { user: AuthUser; sports: Sport[] }) {
     <header className="dashboard-header">
       <div className="header-main">
         <div className="header-left">
+          <button type="button" className="menu-button" aria-label="Ouvrir le menu" aria-expanded={open} aria-controls="app-sidebar" onClick={onMenuClick}>
+            <Icon>menu</Icon>
+          </button>
           <SportSwitcher sports={sports} />
         </div>
         <div className="header-right">
@@ -180,11 +212,16 @@ export default function AppShell({
   sports: Sport[];
   children: ReactNode;
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
     <div className="dashboard">
-      <Sidebar />
+      <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
+
+      {menuOpen && <div className="sidebar-overlay" onClick={() => setMenuOpen(false)} aria-hidden="true" />}
+
       <div className="dashboard-content">
-        <Header user={user} sports={sports} />
+        <Header user={user} sports={sports} open={menuOpen} onMenuClick={() => setMenuOpen((v) => !v)} />
         <main className="main-content">
           <div className="dashboard-container">{children}</div>
         </main>

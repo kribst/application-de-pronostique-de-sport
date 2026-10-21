@@ -1,0 +1,3 @@
+Mise en place
+Télécharge auth-hardening.patch depuis la carte jointe et dépose-le à la racine de ton dépôt.
+En production, mets DJANGO_NUM_PROXIES=1 dans ton .env, et ne laisse Django joignable que par Next ou ton reverse proxy. Sinon un visiteur pourrait forger l’en-tête. En local, laisse 0.

@@ -48,6 +48,37 @@ export type Competition = {
 
 export type CompetitionDetail = Competition & { seasons: Season[] };
 
+export type Venue = {
+  id: string;
+  name: string;
+  city: string;
+  capacity: number | null;
+};
+
+export type Team = {
+  id: string;
+  name: string;
+  short_name: string;
+  slug: string;
+  sport: string; // slug du sport
+  country: Country | null;
+  logo_url: string;
+  stadium: string; // "" si inconnu
+  league: string; // championnat de la saison en cours, "" si aucun
+};
+
+export type TeamParticipation = {
+  competition: { id: string; name: string; slug: string };
+  season: Season;
+  stats: Record<string, unknown>;
+};
+
+export type TeamDetail = Team & {
+  founded_year: number | null;
+  venue: Venue | null;
+  participations: TeamParticipation[];
+};
+
 type Query = Record<string, string | undefined>;
 
 async function authedGet<T>(path: string, query: Query = {}): Promise<T> {
@@ -98,3 +129,19 @@ export const getCompetitions = (filters: { sport?: string; country?: string } = 
 
 export const getCompetition = (id: string) =>
   authedGet<CompetitionDetail>(`/competitions/${id}/`);
+
+export const getTeams = (
+  filters: { competition?: string; country?: string; search?: string } = {}
+) => fetchAll<Team>("/teams/", filters);
+
+/** Une page de resultats (25 equipes) + le total, pour la pagination. */
+export const getTeamsPage = (
+  filters: { competition?: string; search?: string; page?: number }
+) =>
+  authedGet<Paginated<Team>>("/teams/", {
+    competition: filters.competition,
+    search: filters.search,
+    page: filters.page && filters.page > 1 ? String(filters.page) : undefined,
+  });
+
+export const getTeam = (id: string) => authedGet<TeamDetail>(`/teams/${id}/`);

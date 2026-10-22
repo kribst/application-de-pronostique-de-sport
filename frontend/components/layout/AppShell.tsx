@@ -15,7 +15,7 @@ const NAV_ITEMS: NavItem[] = [
   { icon: "query_stats", label: "Dashboard", href: "/dashboard" },
   { icon: "sports_soccer", label: "Sports", href: "/sports" },
   { icon: "trophy", label: "Compétitions", href: "/competitions" },
-  { icon: "shield", label: "Équipes" },
+  { icon: "shield", label: "Équipes", href: "/teams" },
   { icon: "trending_up", label: "Value bets", pro: true },
   { icon: "account_tree", label: "Combinaisons" },
   { icon: "filter_center_focus", label: "Cote cible" },

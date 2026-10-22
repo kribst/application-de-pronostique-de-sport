@@ -4,7 +4,12 @@ import { notFound } from "next/navigation";
 import AuthedPage from "@/components/layout/AuthedPage";
 import { EmptyState } from "@/components/ui/State";
 import { DjangoError } from "@/lib/django";
-import { getCompetition, type CompetitionDetail } from "@/lib/referential";
+import {
+  getCompetition,
+  getTeams,
+  type CompetitionDetail,
+  type Team,
+} from "@/lib/referential";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +26,13 @@ export default async function CompetitionDetailPage({
   } catch (error) {
     if (error instanceof DjangoError && error.status === 404) notFound();
     throw error;
+  }
+
+  let teams: Team[] = [];
+  try {
+    teams = await getTeams({ competition: competition.id });
+  } catch {
+    // La page reste utilisable si la liste des equipes est indisponible.
   }
 
   return (
@@ -49,6 +61,24 @@ export default async function CompetitionDetailPage({
           </li>
         ))}
       </ul>
+
+      <h2 className="mt-space-md mb-3 text-headline-sm font-semibold">Équipes</h2>
+      {teams.length === 0 ? (
+        <p className="text-body-md text-on-surface-variant">Aucune équipe pour cette saison.</p>
+      ) : (
+        <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {teams.map((team) => (
+            <li key={team.id}>
+              <Link
+                href={`/teams/${team.id}`}
+                className="block rounded-xl border border-outline-variant bg-white px-4 py-3 text-body-md font-medium text-on-surface hover:border-primary"
+              >
+                {team.name}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
 
       <div className="mt-space-md rounded-2xl border border-outline-variant bg-white">
         <EmptyState

@@ -107,6 +107,7 @@ const navHrefs: Record<string, string> = {
   Dashboard: "/dashboard",
   Sports: "/sports",
   "Compétitions": "/competitions",
+  "Équipes": "/teams",
 };
 
 const navItems = [

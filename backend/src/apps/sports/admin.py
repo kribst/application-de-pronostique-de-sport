@@ -5,7 +5,18 @@
 # -*- coding: utf-8 -*-
 from django.contrib import admin
 
-from .models import Competition, Country, Round, Season, Sport, SportMarket
+from .models import (
+    Competition,
+    Country,
+    Round,
+    Season,
+    Sport,
+    SportMarket,
+    Team,
+    TeamExternalId,
+    TeamSeasonStat,
+    Venue,
+)
 
 
 class SportMarketInline(admin.TabularInline):
@@ -45,3 +56,46 @@ class CompetitionAdmin(admin.ModelAdmin):
 class RoundAdmin(admin.ModelAdmin):
     list_display = ("season", "number", "name")
     list_filter = ("season__competition",)
+
+
+class TeamExternalIdInline(admin.TabularInline):
+    model = TeamExternalId
+    extra = 0
+
+
+class TeamSeasonStatInline(admin.TabularInline):
+    model = TeamSeasonStat
+    extra = 0
+    autocomplete_fields = ("season",)
+
+
+@admin.register(Venue)
+class VenueAdmin(admin.ModelAdmin):
+    list_display = ("name", "city", "country", "capacity")
+    list_filter = ("country",)
+    search_fields = ("name", "city")
+
+
+@admin.register(Team)
+class TeamAdmin(admin.ModelAdmin):
+    list_display = ("name", "sport", "country", "venue", "is_active")
+    list_filter = ("sport", "country", "is_active")
+    search_fields = ("name", "short_name")
+    prepopulated_fields = {"slug": ("name",)}
+    autocomplete_fields = ("venue",)
+    inlines = [TeamExternalIdInline, TeamSeasonStatInline]
+
+
+@admin.register(TeamSeasonStat)
+class TeamSeasonStatAdmin(admin.ModelAdmin):
+    list_display = ("team", "season")
+    list_filter = ("season__competition",)
+    search_fields = ("team__name",)
+
+
+
+@admin.register(Season)
+class SeasonAdmin(admin.ModelAdmin):
+    list_display = ("competition", "year_start", "year_end", "is_current")
+    list_filter = ("competition", "is_current")
+    search_fields = ("competition__name",)

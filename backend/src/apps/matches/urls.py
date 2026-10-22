@@ -1,4 +1,10 @@
-# URLs de l'app matches — a remplir en roadmap phase 4.
-# Sera monte sous /api/v1/... via pronostique/urls.py (include).
-# Fichier volontairement vide pour l'instant.
-urlpatterns = []
+# -*- coding: utf-8 -*-
+"""Monte sous /api/v1/matches/ (voir pronostique/urls.py) : liste et detail des matchs."""
+from rest_framework.routers import DefaultRouter
+
+from .views import MatchViewSet
+
+router = DefaultRouter()
+router.register("", MatchViewSet, basename="match")
+
+urlpatterns = router.urls

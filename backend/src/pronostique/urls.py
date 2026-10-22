@@ -23,6 +23,7 @@ Apps metier (squelettes) — endpoints montes au fil de la roadmap :
 """
 from django.contrib import admin
 from django.urls import include, path
+from apps.matches.views import SearchView
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularRedocView,
@@ -44,6 +45,7 @@ urlpatterns = [
     path("api/v1/users/", include("apps.users.urls")),
     path("api/v1/", include("apps.sports.urls")),
     path("api/v1/matches/", include("apps.matches.urls")),
+    path("api/v1/search/", SearchView.as_view(), name="search"),
     path("api/v1/odds/", include("apps.odds.urls")),
     path("api/v1/providers/", include("apps.providers.urls")),
     path("api/v1/analysis/", include("apps.analysis.urls")),

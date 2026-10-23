@@ -1,0 +1,29 @@
+.matchRow {
+  transition: background-color 0.15s ease;
+}
+
+.matchRow:hover {
+  background-color: #f8fafc;
+}
+
+.toleranceGroup button {
+  transition: all 0.15s ease;
+}
+
+.toleranceGroup button:hover:not(.bg-surface-container-lowest) {
+  background-color: rgba(15, 118, 110, 0.08);
+}
+
+.calibrationCircle {
+  fill: #ffffff;
+  stroke: #0f766e;
+  stroke-width: 2;
+}
+
+.chevronRight {
+  transition: transform 0.15s ease;
+}
+
+.group:hover .chevronRight {
+  transform: translateX(4px);
+}

@@ -1,5 +1,7 @@
-import { redirect } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 
+import { safeTimezone, todayIn } from "@/lib/datetime";
+import { getMatchesPage, type Match } from "@/lib/referential";
 import { currentUser } from "@/lib/session";
 
 import DashboardClient from "./DashboardClient";
@@ -19,5 +21,24 @@ export default async function DashboardPage() {
 
   if (!user) redirect("/auth/login");
 
-  return <DashboardClient user={user} />;
+  // Matchs du jour dans le fuseau de l'utilisateur. Un echec n'empeche pas le dashboard de s'afficher.
+  const tz = safeTimezone(user.timezone);
+  let todayMatches: Match[] | null = null;
+  let todayTotal = 0;
+  try {
+    const page = await getMatchesPage({ date: todayIn(tz), tz });
+    todayMatches = page.results;
+    todayTotal = page.count;
+  } catch (error) {
+    unstable_rethrow(error);
+  }
+
+  return (
+    <DashboardClient
+      user={user}
+      todayMatches={todayMatches}
+      todayTotal={todayTotal}
+      tz={tz}
+    />
+  );
 }

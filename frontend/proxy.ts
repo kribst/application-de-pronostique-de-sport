@@ -38,7 +38,7 @@ function isAuthPage(pathname: string): boolean {
 }
 
 /** Pages reservees aux utilisateurs connectes. */
-const PROTECTED_PREFIXES = ["/dashboard", "/sports", "/competitions", "/teams", "/admin"];
+const PROTECTED_PREFIXES = ["/dashboard", "/sports", "/competitions", "/teams", "/matches", "/admin"];
 
 function isProtected(pathname: string): boolean {
   return PROTECTED_PREFIXES.some((prefix) => matchesPrefix(pathname, prefix));

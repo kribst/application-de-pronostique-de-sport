@@ -13,7 +13,8 @@ type NavItem = { icon: string; label: string; href?: string; pro?: boolean };
 /** Les entrees sans `href` sont des modules des phases suivantes. */
 const NAV_ITEMS: NavItem[] = [
   { icon: "query_stats", label: "Dashboard", href: "/dashboard" },
-  { icon: "sports_soccer", label: "Sports", href: "/sports" },
+  { icon: "category", label: "Sports", href: "/sports" },
+  { icon: "sports_soccer", label: "Matchs", href: "/matches" },
   { icon: "trophy", label: "Compétitions", href: "/competitions" },
   { icon: "shield", label: "Équipes", href: "/teams" },
   { icon: "trending_up", label: "Value bets", pro: true },

@@ -5,114 +5,21 @@ import { usePathname, useRouter } from "next/navigation";
 import React, { useState } from "react";
 
 import { hasPremiumAccess, roleLabel, type AuthUser } from "@/lib/auth-types";
+import type { Match as ApiMatch } from "@/lib/referential";
 import "./dashboard.css";
-
-type Match = {
-  league: string;
-  time: string;
-  home: string;
-  away: string;
-  homeForm: string[];
-  awayForm: string[];
-  homeProbability: number;
-  drawProbability: number;
-  awayProbability: number;
-  homeLabel: string;
-  awayLabel: string;
-  homeUncertainty: string;
-  drawUncertainty: string;
-  awayUncertainty: string;
-  btts: string;
-  goals: string;
-  odds: {
-    home: string;
-    draw: string;
-    away: string;
-  };
-};
-
-const matches: Match[] = [
-  {
-    league: "Ligue 1 · 34e Journée",
-    time: "Ce soir · 21:00",
-    home: "Paris Saint-Germain",
-    away: "Olympique de Marseille",
-    homeForm: ["V", "V", "N", "V", "D"],
-    awayForm: ["V", "D", "V", "N", "V"],
-    homeProbability: 58,
-    drawProbability: 24,
-    awayProbability: 18,
-    homeLabel: "1 (PSG)",
-    awayLabel: "2 (OM)",
-    homeUncertainty: "± 4 %",
-    drawUncertainty: "± 3 %",
-    awayUncertainty: "± 3 %",
-    btts: "Oui 61 %",
-    goals: "64 %",
-    odds: {
-      home: "1.62",
-      draw: "4.10",
-      away: "5.20",
-    },
-  },
-  {
-    league: "Premier League · 37e Journée",
-    time: "Aujourd'hui · 17:30",
-    home: "Manchester City",
-    away: "Arsenal",
-    homeForm: ["V", "V", "V", "D", "V"],
-    awayForm: ["V", "V", "N", "V", "V"],
-    homeProbability: 49,
-    drawProbability: 27,
-    awayProbability: 24,
-    homeLabel: "1 (MCI)",
-    awayLabel: "2 (ARS)",
-    homeUncertainty: "± 5 %",
-    drawUncertainty: "± 4 %",
-    awayUncertainty: "± 4 %",
-    btts: "Oui 55 %",
-    goals: "58 %",
-    odds: {
-      home: "1.95",
-      draw: "3.75",
-      away: "3.80",
-    },
-  },
-  {
-    league: "La Liga · El Clásico",
-    time: "Demain · 20:45",
-    home: "Real Madrid",
-    away: "FC Barcelone",
-    homeForm: ["V", "N", "V", "V", "V"],
-    awayForm: ["V", "V", "V", "D", "V"],
-    homeProbability: 44,
-    drawProbability: 26,
-    awayProbability: 30,
-    homeLabel: "1 (RMA)",
-    awayLabel: "2 (FCB)",
-    homeUncertainty: "± 4 %",
-    drawUncertainty: "± 3 %",
-    awayUncertainty: "± 4 %",
-    btts: "Oui 68 %",
-    goals: "71 %",
-    odds: {
-      home: "2.25",
-      draw: "3.60",
-      away: "3.05",
-    },
-  },
-];
+import MatchesToday from "./MatchesToday";
 
 const navHrefs: Record<string, string> = {
   Dashboard: "/dashboard",
   Sports: "/sports",
+  Matchs: "/matches",
   "Compétitions": "/competitions",
   "Équipes": "/teams",
 };
 
 const navItems = [
   ["query_stats", "Dashboard"],
-  ["sports_soccer", "Sports"],
+  ["category", "Sports"],
   ["sports_soccer", "Matchs"],
   ["trophy", "Compétitions"],
   ["shield", "Équipes"],
@@ -134,158 +41,6 @@ const soonItems = [
 
 function MaterialIcon({ children }: { children: React.ReactNode }) {
   return <span className="material-symbols-outlined">{children}</span>;
-}
-
-function FormIndicators({ values }: { values: string[] }) {
-  return (
-    <div className="form-indicators">
-      {values.map((value, index) => (
-        <span
-          key={`${value}-${index}`}
-          className={`form-indicator ${
-            value === "D"
-              ? "loss"
-              : value === "N"
-                ? "draw"
-                : "win"
-          }`}
-        >
-          {value}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-function MatchCard({ match }: { match: Match }) {
-  return (
-    <div className="match-card">
-      <div className="match-top">
-        <div className="match-meta">
-          <span className="live-dot" />
-          <span className="league-name">{match.league}</span>
-          <span className="separator">•</span>
-          <span className="match-time">{match.time}</span>
-        </div>
-
-        <div className="mc-badge">
-          <MaterialIcon>tune</MaterialIcon>
-          100 000 tirages MC
-        </div>
-      </div>
-
-      <div className="teams-grid">
-        <div className="team home-team">
-          <div className="team-logo">
-            <MaterialIcon>shield</MaterialIcon>
-          </div>
-
-          <div className="team-info">
-            <span className="team-name">{match.home}</span>
-
-            <div className="form-row">
-              <span className="form-label">Forme :</span>
-              <FormIndicators values={match.homeForm} />
-            </div>
-          </div>
-        </div>
-
-        <div className="vs-badge">VS</div>
-
-        <div className="team away-team">
-          <div className="team-info">
-            <span className="team-name">{match.away}</span>
-
-            <div className="form-row">
-              <FormIndicators values={match.awayForm} />
-              <span className="form-label">: Forme</span>
-            </div>
-          </div>
-
-          <div className="team-logo">
-            <MaterialIcon>shield</MaterialIcon>
-          </div>
-        </div>
-      </div>
-
-      <div className="probability-section">
-        <div className="probability-labels">
-          <div>
-            <span className="prob-dot primary" />
-            <strong>
-              {match.homeLabel} : {match.homeProbability} %
-            </strong>
-            <span>{match.homeUncertainty}</span>
-          </div>
-
-          <div>
-            <span className="prob-dot secondary" />
-            <strong>Nul : {match.drawProbability} %</strong>
-            <span>{match.drawUncertainty}</span>
-          </div>
-
-          <div>
-            <span className="prob-dot neutral" />
-            <strong>
-              {match.awayLabel} : {match.awayProbability} %
-            </strong>
-            <span>{match.awayUncertainty}</span>
-          </div>
-        </div>
-
-        <div className="probability-bar">
-          <div
-            className="prob-home"
-            style={{ width: `${match.homeProbability}%` }}
-          />
-          <div
-            className="prob-draw"
-            style={{ width: `${match.drawProbability}%` }}
-          />
-          <div
-            className="prob-away"
-            style={{ width: `${match.awayProbability}%` }}
-          />
-        </div>
-      </div>
-
-      <div className="market-row">
-        <div className="market-pills">
-          <div className="market-pill">
-            <span>BTTS :</span>
-            <strong>{match.btts}</strong>
-            <small>± 4%</small>
-          </div>
-
-          <div className="market-pill">
-            <span>+2.5 buts :</span>
-            <strong>{match.goals}</strong>
-            <small>± 5%</small>
-          </div>
-
-          <div className="odds-pill">
-            <span>Marché :</span>
-            <span>
-              1: <strong>{match.odds.home}</strong>
-            </span>
-            <span>·</span>
-            <span>
-              X: <strong>{match.odds.draw}</strong>
-            </span>
-            <span>·</span>
-            <span>
-              2: <strong>{match.odds.away}</strong>
-            </span>
-          </div>
-        </div>
-
-        <button className="analysis-button" type="button">
-          Voir l&apos;analyse détaillée
-          <MaterialIcon>arrow_forward</MaterialIcon>
-        </button>
-      </div>
-    </div>
-  );
 }
 
 type SidebarProps = {
@@ -998,7 +753,17 @@ function CalibrationCard() {
   );
 }
 
-export default function DashboardClient({ user }: { user: AuthUser }) {
+export default function DashboardClient({
+  user,
+  todayMatches,
+  todayTotal,
+  tz,
+}: {
+  user: AuthUser;
+  todayMatches: ApiMatch[] | null;
+  todayTotal: number;
+  tz: string;
+}) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -1050,31 +815,7 @@ export default function DashboardClient({ user }: { user: AuthUser }) {
 
             <section className="workspace">
               <div className="matches-column">
-                <div className="matches-header">
-                  <div>
-                    <h2>Matchs du jour & Probabilités calibrées</h2>
-                    <p>
-                      Toutes les probabilités intègrent la marge
-                      d&apos;incertitude Monte Carlo
-                    </p>
-                  </div>
-
-                  <div className="match-filters">
-                    <button className="selected" type="button">
-                      Tous (8)
-                    </button>
-                    <button type="button">Ligue 1</button>
-                    <button type="button">PL</button>
-                    <button type="button">Liga</button>
-                  </div>
-                </div>
-
-                {matches.map((match) => (
-                  <MatchCard
-                    key={`${match.home}-${match.away}`}
-                    match={match}
-                  />
-                ))}
+                <MatchesToday matches={todayMatches} total={todayTotal} tz={tz} />
               </div>
 
               <div className="tools-column">

@@ -145,3 +145,78 @@ export const getTeamsPage = (
   });
 
 export const getTeam = (id: string) => authedGet<TeamDetail>(`/teams/${id}/`);
+
+// --- Matchs (phase 4) ------------------------------------------------------
+
+export type MatchStatus =
+  | "SCHEDULED"
+  | "LIVE"
+  | "FINISHED"
+  | "POSTPONED"
+  | "CANCELLED"
+  | "SUSPENDED";
+
+export type MatchTeam = {
+  id: string;
+  name: string;
+  short_name: string;
+  logo_url: string;
+};
+
+export type Match = {
+  id: string;
+  kickoff_at: string; // ISO 8601, toujours en UTC ("...Z")
+  status: MatchStatus;
+  score_home: number | null;
+  score_away: number | null;
+  competition: { id: string; name: string; slug: string };
+  season: string;
+  round: number | null;
+  home_team: MatchTeam;
+  away_team: MatchTeam;
+  venue: string;
+};
+
+export type MatchEventType =
+  | "GOAL"
+  | "OWN_GOAL"
+  | "PENALTY"
+  | "YELLOW_CARD"
+  | "RED_CARD"
+  | "SUBSTITUTION"
+  | "VAR";
+
+export type MatchEvent = {
+  id: string;
+  minute: number;
+  extra_minute: number | null;
+  type: MatchEventType;
+  team_id: string | null;
+  player_name: string;
+};
+
+export type MatchDetail = Omit<Match, "venue"> & {
+  venue: Venue | null;
+  referee: string;
+  weather: Record<string, unknown>;
+  events: MatchEvent[];
+};
+
+export type MatchFilters = {
+  date?: string; // AAAA-MM-JJ, jour calendaire dans le fuseau tz
+  tz?: string; // fuseau IANA, ex. Africa/Douala
+  competition?: string;
+  status?: string; // ex. "LIVE" ou "FINISHED,LIVE"
+  page?: number;
+};
+
+export const getMatchesPage = (filters: MatchFilters = {}) =>
+  authedGet<Paginated<Match>>("/matches/", {
+    date: filters.date,
+    tz: filters.tz,
+    competition: filters.competition,
+    status: filters.status,
+    page: filters.page && filters.page > 1 ? String(filters.page) : undefined,
+  });
+
+export const getMatch = (id: string) => authedGet<MatchDetail>(`/matches/${id}/`);

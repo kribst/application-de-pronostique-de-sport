@@ -66,6 +66,8 @@ class Match(models.Model):
         Venue, null=True, blank=True, on_delete=models.SET_NULL, related_name="matches"
     )
     weather = models.JSONField(default=dict, blank=True)
+    # Date de la derniere recuperation des evenements chez le fournisseur (phase 5).
+    details_synced_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["kickoff_at"]

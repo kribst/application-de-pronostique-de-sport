@@ -10,6 +10,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import environ
+from celery.schedules import crontab
 
 # --- Chemins ---------------------------------------------------------------
 # Ce fichier : backend/src/pronostique/settings/base.py
@@ -255,7 +256,16 @@ CELERY_BEAT_SCHEDULER = "celery.beat:PersistentScheduler"
 CELERY_BEAT_SCHEDULE_FILENAME = env("CELERY_BEAT_SCHEDULE_FILENAME") or str(
     BASE_DIR / "celerybeat-schedule"
 )
-CELERY_BEAT_SCHEDULE = {}
+CELERY_BEAT_SCHEDULE = {
+    # Toutes ces taches verifient d'abord, avec la base seule, qu'un appel au fournisseur
+    # est utile (apps/providers/jobs.py) : les lancer souvent ne consomme pas de quota.
+    "providers-sync-live": {"task": "apps.providers.tasks.sync_live", "schedule": 60.0},
+    "providers-sync-stale": {"task": "apps.providers.tasks.sync_stale_results", "schedule": crontab(minute="*/30")},
+    "providers-sync-fixtures": {"task": "apps.providers.tasks.sync_fixtures", "schedule": crontab(minute="*/30")},
+    "providers-sync-details": {"task": "apps.providers.tasks.sync_details", "schedule": crontab(minute=20)},
+    "providers-sync-reference": {"task": "apps.providers.tasks.sync_reference", "schedule": crontab(hour=3, minute=0)},
+    "providers-monitor-quota": {"task": "apps.providers.tasks.monitor_quota", "schedule": crontab(minute=5)},
+}
 
 
 # --- Fournisseur de donnees sportives (roadmap phase 5) ----------------------

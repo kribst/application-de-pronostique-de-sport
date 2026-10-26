@@ -582,3 +582,66 @@ class TaskAndCommandTests(ProviderTestCase):
         out = StringIO()
         call_command("provider_status", stdout=out)
         self.assertIn("Quota du jour", out.getvalue())
+
+
+# --- Plan gratuit : saisons historiques et delai apres "offre insuffisante" -------------------
+class FreePlanTests(ProviderTestCase):
+    PLAN_ERROR = {"plan": "Free plans do not have access to this season, try from 2022 to 2024."}
+
+    def test_a_past_season_can_be_imported_without_becoming_current(self):
+        self.transport.set("fixtures", [fixture_item(1, short="FT", goals=(2, 0), season=2024,
+                                                    date="2024-10-05T19:00:00+00:00", round_="Regular Season - 8")])
+        stats = self.stats_of(jobs.sync_fixtures_job, only="ligue-1", season=2024)
+        self.assertEqual(stats["matches_created"], 1)
+        self.assertEqual(self.transport.calls[0][1]["season"], "2024")
+        season = Season.objects.get(competition=self.ligue1, year_start=2024)
+        self.assertFalse(season.is_current)
+        self.assertEqual(season.year_end, 2025)
+        self.assertTrue(self.ligue1.seasons.get(is_current=True).year_start == 2026)  # la saison courante ne change pas
+        self.assertEqual(Match.objects.get(external_ids__external_id="1").season, season)
+
+    def test_teams_of_a_past_season_are_linked_to_that_season(self):
+        self.transport.set("teams", [team_item(10, "Paris Saint Germain")])
+        self.stats_of(jobs.sync_reference_job, only="ligue-1", season=2023)
+        season = Season.objects.get(competition=self.ligue1, year_start=2023)
+        self.assertEqual(TeamSeasonStat.objects.filter(season=season).count(), 1)
+
+    def test_plan_error_is_not_retried_for_six_hours(self):
+        self.transport.set("fixtures", errors=self.PLAN_ERROR)
+        first = jobs.run_logged("sync_fixtures", lambda s: jobs.sync_fixtures_job(self.provider, self.config, s))
+        self.assertEqual(first.status, "FAILED")
+        self.assertIn("2022 to 2024", first.error)
+        calls = len(self.transport.calls)
+        second = jobs.run_logged("sync_fixtures", lambda s: jobs.sync_fixtures_job(self.provider, self.config, s))
+        self.assertEqual(len(self.transport.calls), calls)  # aucune nouvelle requete
+        self.assertEqual(second.status, "SKIPPED")
+        self.assertIn("offre insuffisante", second.stats["skipped"])
+
+    def test_plan_error_is_retried_after_six_hours_and_when_forced(self):
+        self.transport.set("fixtures", errors=self.PLAN_ERROR)
+        jobs.run_logged("x", lambda s: jobs.sync_fixtures_job(self.provider, self.config, s))
+        calls = len(self.transport.calls)
+        SyncCursor.objects.update(last_attempt_at=timezone.now() - datetime.timedelta(hours=7))
+        jobs.run_logged("x", lambda s: jobs.sync_fixtures_job(self.provider, self.config, s))
+        self.assertEqual(len(self.transport.calls), calls + 1)
+        jobs.run_logged("x", lambda s: jobs.sync_fixtures_job(self.provider, self.config, s, force=True))
+        self.assertEqual(len(self.transport.calls), calls + 2)
+
+    def test_a_historical_season_still_works_while_the_current_one_is_blocked(self):
+        self.transport.set("fixtures", errors=self.PLAN_ERROR)
+        jobs.run_logged("x", lambda s: jobs.sync_fixtures_job(self.provider, self.config, s, only="ligue-1"))
+        self.transport.set("fixtures", [fixture_item(7, short="FT", goals=(1, 1), season=2024,
+                                                    date="2024-09-01T19:00:00+00:00")])
+        stats = self.stats_of(jobs.sync_fixtures_job, only="ligue-1", season=2024)
+        self.assertEqual(stats["matches_created"], 1)
+
+    def test_command_accepts_a_season(self):
+        from io import StringIO
+        self.transport.set("fixtures", [fixture_item(3, short="FT", goals=(0, 1), season=2024,
+                                                    date="2024-09-02T19:00:00+00:00")])
+        out = StringIO()
+        target = "apps.providers.management.commands.sync_provider.build_provider"
+        with mock.patch(target, return_value=self.provider):
+            call_command("sync_provider", "fixtures", "--competition", "ligue-1", "--season", "2024", stdout=out)
+        self.assertIn("SUCCESS", out.getvalue())
+        self.assertTrue(Match.objects.filter(external_ids__external_id="3").exists())

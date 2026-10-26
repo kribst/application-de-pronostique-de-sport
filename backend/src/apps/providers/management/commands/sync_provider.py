@@ -17,12 +17,14 @@ JOBS = {
 
 
 class Command(BaseCommand):
-    help = "sync_provider reference|fixtures|live|stale|details|all [--competition SLUG] [--force]"
+    help = "sync_provider reference|fixtures|live|stale|details|all [--competition SLUG] [--season ANNEE] [--force]"
 
     def add_arguments(self, parser):
         parser.add_argument("what", choices=[*JOBS, "all"])
         parser.add_argument("--competition", help="slug d'une competition (ex. ligue-1)")
         parser.add_argument("--force", action="store_true", help="ignore les delais de rafraichissement")
+        parser.add_argument("--season", type=int, help="annee de depart d'une saison precise (ex. 2024) ; "
+                                                        "par defaut la saison courante. Utile avec le plan gratuit.")
         parser.add_argument("--purge-seed", action="store_true", help="supprime d'abord les matchs de test (seed)")
         parser.add_argument("--deactivate-unlinked-teams", action="store_true",
                             help="apres import, desactive les equipes de test jamais rattachees au fournisseur")
@@ -37,7 +39,7 @@ class Command(BaseCommand):
         for name in names:
             kwargs = {}
             if name in ("reference", "fixtures"):
-                kwargs = {"force": options["force"], "only": options["competition"]}
+                kwargs = {"force": options["force"], "only": options["competition"], "season": options["season"]}
             elif name == "live":
                 kwargs = {"force": options["force"]}
 

@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
 from django.contrib import admin
 
-from .models import Match, MatchEvent, MatchExternalId
+from .models import Match, MatchEvent, MatchExternalId, MatchStat
 
 
 class MatchEventInline(admin.TabularInline):
     model = MatchEvent
+    extra = 0
+
+
+class MatchStatInline(admin.TabularInline):
+    model = MatchStat
     extra = 0
 
 
@@ -22,4 +27,4 @@ class MatchAdmin(admin.ModelAdmin):
     search_fields = ("home_team__name", "away_team__name")
     date_hierarchy = "kickoff_at"
     autocomplete_fields = ("home_team", "away_team", "season")
-    inlines = [MatchEventInline, MatchExternalIdInline]
+    inlines = [MatchEventInline, MatchStatInline, MatchExternalIdInline]

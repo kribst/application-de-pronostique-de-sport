@@ -7,14 +7,17 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from django.db.models import Prefetch, Q
 from django.utils import timezone
 from rest_framework import viewsets
-from rest_framework.exceptions import ValidationError
+from rest_framework.decorators import action
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.sports.models import Competition, Team
 from apps.sports.serializers import CompetitionSerializer, TeamSerializer
 
-from .models import Match, MatchEvent, MatchStatus
+from .form import team_form
+from .h2h import DEFAULT_LIMIT, MAX_LIMIT, head_to_head
+from .models import Match, MatchEvent, MatchStat, MatchStatus
 from .serializers import MatchDetailSerializer, MatchSerializer
 
 
@@ -35,6 +38,39 @@ def _user_timezone(request, params):
         return ZoneInfo(name)
     except (ZoneInfoNotFoundError, ValueError):
         raise ValidationError({"tz": "Fuseau horaire invalide (ex. Africa/Douala)."})
+
+
+def _aware_param(params, name):
+    """Date/heure ISO 8601 AVEC fuseau (ex. 2026-10-24T19:00:00Z), ou None."""
+    raw = params.get(name)
+    if not raw:
+        return None
+    try:
+        value = datetime.datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        raise ValidationError({name: "Date ISO 8601 attendue (ex. 2026-10-24T19:00:00Z)."})
+    if value.tzinfo is None:
+        raise ValidationError({name: "La date doit contenir un fuseau horaire (ex. ...Z)."})
+    return value
+
+
+def _limit_param(params):
+    raw = params.get("limit", str(DEFAULT_LIMIT))
+    if not raw.isdigit() or not 1 <= int(raw) <= MAX_LIMIT:
+        raise ValidationError({"limit": f"Entier entre 1 et {MAX_LIMIT}."})
+    return int(raw)
+
+
+def _stats_payload(match):
+    by_team = {s.team_id: s for s in MatchStat.objects.filter(match=match)}
+    home, away = by_team.get(match.home_team_id), by_team.get(match.away_team_id)
+    return {
+        "match": str(match.id),
+        "available": bool(home or away),
+        "home": home.stats if home else None,
+        "away": away.stats if away else None,
+        "updated_at": max((s.updated_at for s in by_team.values()), default=None),
+    }
 
 
 class MatchViewSet(viewsets.ReadOnlyModelViewSet):
@@ -92,6 +128,33 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
     def get_serializer_class(self):
         return MatchDetailSerializer if self.action == "retrieve" else MatchSerializer
 
+    # --- Statistiques, forme et H2H d'un match (phase 6) -------------------------
+    @action(detail=True, methods=["get"])
+    def stats(self, request, pk=None):
+        """Statistiques des deux equipes pour ce match (vides tant qu'elles ne sont pas importees)."""
+        return Response(_stats_payload(self.get_object()))
+
+    @action(detail=True, methods=["get"])
+    def h2h(self, request, pk=None):
+        """Confrontations directes AVANT ce match (le match lui-meme n'est jamais compte)."""
+        match = self.get_object()
+        return Response(
+            head_to_head(match.home_team_id, match.away_team_id, match.kickoff_at, _limit_param(request.query_params))
+        )
+
+    @action(detail=True, methods=["get"])
+    def form(self, request, pk=None):
+        """Forme des deux equipes telle qu'elle etait au coup d'envoi (aucune donnee posterieure)."""
+        match = self.get_object()
+        return Response(
+            {
+                "match": str(match.id),
+                "as_of": match.kickoff_at.astimezone(datetime.timezone.utc).isoformat().replace("+00:00", "Z"),
+                "home_team": team_form(match.home_team_id, match.kickoff_at),
+                "away_team": team_form(match.away_team_id, match.kickoff_at),
+            }
+        )
+
 
 class SearchView(APIView):
     """Recherche globale : equipes, competitions et matchs (GET /api/v1/search/?q=).
@@ -131,3 +194,21 @@ class SearchView(APIView):
                 "matches": MatchSerializer(matches, many=True).data,
             }
         )
+
+
+class H2HView(APIView):
+    """GET /api/v1/h2h/?team_a=<uuid>&team_b=<uuid>[&before=<ISO>][&limit=10]."""
+
+    def get(self, request):
+        params = request.query_params
+        ids = []
+        for name in ("team_a", "team_b"):
+            try:
+                ids.append(uuid.UUID(params.get(name, "")))
+            except ValueError:
+                raise ValidationError({name: "Identifiant d'equipe invalide."})
+        if ids[0] == ids[1]:
+            raise ValidationError({"team_b": "Choisissez deux equipes differentes."})
+        if Team.objects.filter(pk__in=ids, is_active=True).count() != 2:
+            raise NotFound("Equipe introuvable.")
+        return Response(head_to_head(ids[0], ids[1], _aware_param(params, "before"), _limit_param(params)))

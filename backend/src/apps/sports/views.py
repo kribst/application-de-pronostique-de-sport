@@ -137,3 +137,17 @@ class TeamViewSet(viewsets.ReadOnlyModelViewSet):
         if self.action == "retrieve":
             return TeamDetailSerializer
         return TeamSerializer
+
+    @action(detail=True, methods=["get"])
+    def form(self, request, pk=None):
+        """Forme sur 5, 10 et 20 matchs (tous / domicile / exterieur).
+
+        ?before=<ISO avec fuseau> : forme a cette date (defaut : maintenant) ;
+        ?competition=<uuid> : uniquement les matchs de cette competition.
+        """
+        from apps.matches.form import team_form
+        from apps.matches.views import _aware_param
+
+        team = self.get_object()
+        competition = _uuid_param(request.query_params, "competition")
+        return Response(team_form(team.id, _aware_param(request.query_params, "before"), competition))

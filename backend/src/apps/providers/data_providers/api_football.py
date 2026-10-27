@@ -162,6 +162,47 @@ def normalize_match(item) -> MatchDTO:
     )
 
 
+# Libelles d'API-Football -> cles de apps/matches/stat_schemas.py
+STAT_KEYS = {
+    "Total Shots": "shots_total", "Shots on Goal": "shots_on_target", "Shots off Goal": "shots_off_target",
+    "Blocked Shots": "shots_blocked", "Shots insidebox": "shots_inside_box", "Shots outsidebox": "shots_outside_box",
+    "Ball Possession": "possession", "Corner Kicks": "corners", "Fouls": "fouls", "Offsides": "offsides",
+    "Yellow Cards": "yellow_cards", "Red Cards": "red_cards", "Goalkeeper Saves": "saves",
+    "Total passes": "passes_total", "Passes accurate": "passes_accurate", "Passes %": "pass_accuracy",
+    "expected_goals": "expected_goals",
+}
+
+
+def _stat_number(value, key: str):
+    """"55%" -> 55 ; "1.23" -> 1.23 ; None / texte -> None (statistique ignoree)."""
+    if value is None:
+        return None
+    if isinstance(value, str):
+        value = value.strip().rstrip("%")
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return number if key == "expected_goals" else int(number)
+
+
+def normalize_statistics(item) -> dict:
+    stats = {}
+    for block in _get(item, "statistics") or []:
+        team_id = _get(block, "team", "id")
+        if team_id is None:
+            continue
+        values = {}
+        for entry in _get(block, "statistics") or []:
+            key = STAT_KEYS.get(_get(entry, "type"))
+            number = _stat_number(_get(entry, "value"), key) if key else None
+            if key and number is not None:
+                values[key] = number
+        if values:
+            stats[str(team_id)] = values
+    return stats
+
+
 def normalize_events(item) -> MatchDetailDTO:
     events = []
     for raw in _get(item, "events") or []:
@@ -187,7 +228,10 @@ def normalize_events(item) -> MatchDetailDTO:
                 player_name=(_get(raw, "player", "name") or "").strip()[:120],
             )
         )
-    return MatchDetailDTO(match_external_id=str(_get(item, "fixture", "id") or ""), events=tuple(events))
+    return MatchDetailDTO(
+        match_external_id=str(_get(item, "fixture", "id") or ""), events=tuple(events),
+        stats=normalize_statistics(item),
+    )
 
 
 def _normalize_list(items, normalizer) -> Batch:

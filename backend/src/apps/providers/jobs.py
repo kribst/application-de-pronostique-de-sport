@@ -256,21 +256,33 @@ def sync_stale_job(provider: DataProvider, config: DataProviderConfig, stats: di
     _merge(stats, service.stats)
 
 
-def sync_details_job(provider: DataProvider, config: DataProviderConfig, stats: dict):
-    """Evenements des matchs termines : une seule fois par match, 20 matchs par requete."""
+def sync_details_job(provider: DataProvider, config: DataProviderConfig, stats: dict, *,
+                     only: str | None = None, season: int | None = None,
+                     max_age_days: int = 7, batches: int = 1):
+    """Evenements ET statistiques des matchs termines : une seule fois par match.
+
+    Une requete = 20 matchs. Par defaut : 1 requete par execution, matchs des 7 derniers jours.
+    Pour rattraper l'historique, relever `max_age_days` et `batches` (decision de quota assumee).
+    """
     now = timezone.now()
-    ids = list(
-        Match.objects.filter(
-            external_ids__provider=provider.slug, status=MatchStatus.FINISHED,
-            details_synced_at__isnull=True, kickoff_at__gte=now - DETAILS_MAX_AGE,
-        ).order_by("kickoff_at").values_list("external_ids__external_id", flat=True)[:20]
-    )
-    if not ids:
-        stats["skipped"] = "aucun match termine sans details"
-        return
     service = SyncService(provider)
-    service.sync_by_ids(ids, with_details=True)
-    _merge(stats, service.stats)
+    for _ in range(max(1, batches)):
+        pending = Match.objects.filter(
+            external_ids__provider=provider.slug, status=MatchStatus.FINISHED,
+            details_synced_at__isnull=True, kickoff_at__gte=now - datetime.timedelta(days=max_age_days),
+        )
+        if only:
+            pending = pending.filter(competition__slug=only)
+        if season:
+            pending = pending.filter(season__year_start=season)
+        ids = list(pending.order_by("kickoff_at").values_list("external_ids__external_id", flat=True)[:20])
+        if not ids:
+            if not stats.get("details_synced"):
+                stats["skipped"] = "aucun match termine sans details"
+            break
+        service.sync_by_ids(ids, with_details=True)
+        _merge(stats, service.stats)
+        service.stats.clear()
 
 
 def monitor_quota_job(provider: DataProvider, config: DataProviderConfig, stats: dict):

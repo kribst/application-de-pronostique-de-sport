@@ -90,6 +90,8 @@ class EventDTO:
 class MatchDetailDTO:
     match_external_id: str
     events: tuple[EventDTO, ...] = ()
+    # statistiques par equipe : {identifiant de l'equipe chez le fournisseur: {cle normalisee: valeur}}
+    stats: dict = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

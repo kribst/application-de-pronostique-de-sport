@@ -17,7 +17,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 from django.utils.text import slugify
 
-from apps.matches.models import Match, MatchEvent, MatchExternalId, MatchStatus
+from apps.matches.models import Match, MatchEvent, MatchExternalId, MatchStat, MatchStatus
 from apps.sports.models import (
     Competition, Country, Round, Season, Sport, Team, TeamExternalId, TeamSeasonStat, Venue,
 )
@@ -251,6 +251,23 @@ class SyncService:
             return
         self.stats["matches_updated"] += 1
 
+    def _apply_statistics(self, match: Match, detail: MatchDetailDTO, team_links: dict, valid_teams: set) -> None:
+        for team_external_id, values in detail.stats.items():
+            team_id = team_links.get(team_external_id)
+            if team_id not in valid_teams:
+                self.stats["rejected"] += 1
+                continue
+            try:
+                stat, _ = MatchStat.objects.get_or_create(match=match, team_id=team_id, defaults={"stats": values})
+                if stat.stats != values:
+                    stat.stats = values
+                    stat.save()
+            except ValidationError as exc:
+                self.stats["rejected"] += 1
+                logger.warning("Statistiques du match %s ecartees : %s", match.id, exc)
+                continue
+            self.stats["stats_synced"] += 1
+
     # -- evenements ------------------------------------------------------------------------
     def _apply_details(self, details: dict[str, MatchDetailDTO], requested: list[str]) -> None:
         links = MatchExternalId.objects.select_related("match").filter(
@@ -279,3 +296,4 @@ class SyncService:
                 )
                 Match.objects.filter(pk=match.pk).update(details_synced_at=now)
             self.stats["details_synced"] += 1
+            self._apply_statistics(match, detail, team_links, valid_teams)

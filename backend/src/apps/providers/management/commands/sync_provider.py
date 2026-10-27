@@ -25,6 +25,10 @@ class Command(BaseCommand):
         parser.add_argument("--force", action="store_true", help="ignore les delais de rafraichissement")
         parser.add_argument("--season", type=int, help="annee de depart d'une saison precise (ex. 2024) ; "
                                                         "par defaut la saison courante. Utile avec le plan gratuit.")
+        parser.add_argument("--since-days", type=int, default=7,
+                            help="details : age maximal des matchs a traiter (defaut 7 ; mettre 9999 pour l'historique)")
+        parser.add_argument("--batches", type=int, default=1,
+                            help="details : nombre de requetes (20 matchs chacune) a depenser (defaut 1)")
         parser.add_argument("--purge-seed", action="store_true", help="supprime d'abord les matchs de test (seed)")
         parser.add_argument("--deactivate-unlinked-teams", action="store_true",
                             help="apres import, desactive les equipes de test jamais rattachees au fournisseur")
@@ -40,6 +44,9 @@ class Command(BaseCommand):
             kwargs = {}
             if name in ("reference", "fixtures"):
                 kwargs = {"force": options["force"], "only": options["competition"], "season": options["season"]}
+            elif name == "details":
+                kwargs = {"only": options["competition"], "season": options["season"],
+                          "max_age_days": options["since_days"], "batches": options["batches"]}
             elif name == "live":
                 kwargs = {"force": options["force"]}
 

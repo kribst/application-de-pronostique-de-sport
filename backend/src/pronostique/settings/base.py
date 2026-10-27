@@ -264,6 +264,7 @@ CELERY_BEAT_SCHEDULE = {
     "providers-sync-fixtures": {"task": "apps.providers.tasks.sync_fixtures", "schedule": crontab(minute="*/30")},
     "providers-sync-details": {"task": "apps.providers.tasks.sync_details", "schedule": crontab(minute=20)},
     "providers-sync-reference": {"task": "apps.providers.tasks.sync_reference", "schedule": crontab(hour=3, minute=0)},
+    "matches-update-form-cache": {"task": "apps.matches.tasks.update_form_cache", "schedule": crontab(minute=40)},
     "providers-monitor-quota": {"task": "apps.providers.tasks.monitor_quota", "schedule": crontab(minute=5)},
 }
 

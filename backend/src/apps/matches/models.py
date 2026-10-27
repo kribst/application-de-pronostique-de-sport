@@ -16,6 +16,8 @@ from django.utils import timezone
 
 from apps.sports.models import Competition, Round, Season, Team, Venue
 
+from .stat_schemas import validate_stats
+
 
 class MatchStatus(models.TextChoices):
     SCHEDULED = "SCHEDULED", "Programme"
@@ -219,3 +221,33 @@ class MatchEvent(models.Model):
 
     def __str__(self):
         return f"{self.minute}' {self.type}"
+
+
+class MatchStat(models.Model):
+    """Statistiques d'une equipe pour un match (schema variable selon le sport)."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    match = models.ForeignKey(Match, on_delete=models.CASCADE, related_name="stats")
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="match_stats")
+    stats = models.JSONField(default=dict, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["match", "team"], name="matchstat_match_team_unique"),
+        ]
+
+    def clean(self):
+        if self.team_id and self.match_id and self.team_id not in (
+            self.match.home_team_id, self.match.away_team_id
+        ):
+            raise ValidationError({"team": "L'equipe doit etre l'une des deux equipes du match."})
+        if self.match_id:
+            self.stats = validate_stats(self.match.competition.sport.slug, self.stats)
+
+    def save(self, *args, **kwargs):
+        self.clean()  # garde-fou a chaque sauvegarde, comme pour Match
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"stats {self.team} / {self.match_id}"

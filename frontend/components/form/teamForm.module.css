@@ -1,0 +1,90 @@
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap");
+
+.page {
+  min-height: 100vh;
+  background: #f8fafc;
+  color: #0f172a;
+  font-family: "Geist", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.page :global(*) { box-sizing: border-box; }
+.page :global(button), .page :global(input) { font: inherit; }
+.page :global(button) { cursor: pointer; }
+.page :global(button:disabled) { cursor: not-allowed; }
+.page :global(.material-symbols-outlined) {
+  font-family: "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+  vertical-align: middle;
+}
+
+.hidden { display: none !important; }
+.stateView { display: block; }
+.spin { animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.page :global(.scrollbar-none::-webkit-scrollbar) { display: none; }
+.page :global(.scrollbar-none) { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Tokens de la maquette, absents du Tailwind standard */
+.page :global(.bg-surface-container-lowest) { background-color: #fff; }
+.page :global(.bg-surface-container-low) { background-color: #f1f5f9; }
+.page :global(.bg-surface-container) { background-color: #e2e8f0; }
+.page :global(.bg-surface-container-high) { background-color: #cbd5e1; }
+.page :global(.bg-surface-variant) { background-color: #cbd5e1; }
+.page :global(.bg-accent) { background-color: #ccfbf1; }
+.page :global(.text-on-surface) { color: #0f172a; }
+.page :global(.text-secondary) { color: #475569; }
+.page :global(.text-on-primary) { color: #fff; }
+.page :global(.text-teal-900) { color: #134e4a; }
+.page :global(.text-teal-800) { color: #115e59; }
+.page :global(.text-teal-700) { color: #0f766e; }
+.page :global(.bg-teal-800) { background-color: #115e59; }
+.page :global(.bg-teal-900) { background-color: #134e4a; }
+.page :global(.text-label-sm),
+.page :global(.font-label-sm),
+.page :global(.text-label-md),
+.page :global(.font-label-md),
+.page :global(.text-body-sm),
+.page :global(.font-body-sm),
+.page :global(.text-body-md),
+.page :global(.font-body-md),
+.page :global(.text-headline-sm),
+.page :global(.font-headline-sm),
+.page :global(.text-headline-md),
+.page :global(.font-headline-md),
+.page :global(.text-headline-lg),
+.page :global(.font-headline-lg) { line-height: 1.45; }
+.page :global(.text-label-sm) { font-size: 11px; }
+.page :global(.text-label-md) { font-size: 13px; }
+.page :global(.text-body-sm) { font-size: 13px; }
+.page :global(.text-body-md) { font-size: 14px; }
+.page :global(.text-headline-sm) { font-size: 18px; }
+.page :global(.text-headline-md) { font-size: 24px; }
+.page :global(.text-headline-lg) { font-size: 30px; }
+
+@media (max-width: 1023px) {
+  .page :global(.pl-64) { padding-left: 0; }
+  .page :global(.left-64) { left: 0; }
+  .page :global(aside.fixed) { position: relative; width: 100%; height: auto; }
+  .page :global(aside.fixed > div:last-child) { display: none; }
+  .page :global(header.fixed) { position: sticky; top: 0; left: 0; right: 0; }
+  .page :global(main.pt-28) { padding-top: 1.5rem; }
+}
+@media (max-width: 640px) {
+  .page :global(header .h-16) { height: auto; min-height: 4rem; flex-wrap: wrap; padding: 0.75rem; }
+  .page :global(main.px-6) { padding-left: 1rem; padding-right: 1rem; }
+  .page :global(.grid-cols-2) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

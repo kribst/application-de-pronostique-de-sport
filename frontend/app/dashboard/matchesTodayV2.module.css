@@ -1,0 +1,51 @@
+.dashboard {
+  min-height: 100vh;
+  font-family: 'Geist', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  background: #f8fafc;
+}
+
+.dashboard :global(*) { box-sizing: border-box; }
+.dashboard :global(.material-symbols-outlined) {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 1em;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-feature-settings: 'liga';
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+.dashboard :global(::-webkit-scrollbar) { width: 5px; height: 5px; }
+.dashboard :global(::-webkit-scrollbar-track) { background: transparent; }
+.dashboard :global(::-webkit-scrollbar-thumb) { background: #e2e8f0; border-radius: 9999px; }
+.dashboard :global(::-webkit-scrollbar-thumb:hover) { background: #cbd5e1; }
+.dashboard :global(button), .dashboard :global(input) { font: inherit; }
+
+@media (max-width: 767px) {
+  .dashboard :global(aside) { width: 3.75rem; }
+  .dashboard :global(aside > div > div:first-child) { padding-left: .75rem; padding-right: .75rem; }
+  .dashboard :global(aside > div > div:first-child > div:last-child),
+  .dashboard :global(aside nav a span:not(.material-symbols-outlined)),
+  .dashboard :global(aside nav a > span:last-child),
+  .dashboard :global(aside nav a > span:first-child + span),
+  .dashboard :global(aside nav a span:nth-child(2)),
+  .dashboard :global(aside nav a span:first-child span + span),
+  .dashboard :global(aside > div > div:nth-child(2) > div:first-child),
+  .dashboard :global(aside > div > div:nth-child(2) > div:nth-child(2)),
+  .dashboard :global(aside > div > div:last-child p),
+  .dashboard :global(aside > div > div:last-child div > span:last-child) { display: none; }
+  .dashboard :global(aside nav a) { justify-content: center; padding-left: .5rem; padding-right: .5rem; }
+  .dashboard :global(aside nav a > span:first-child) { justify-content: center; }
+  .dashboard :global(aside nav a .material-symbols-outlined) { font-size: 1.25rem; }
+  .dashboard :global(aside > div > div:last-child) { padding: .75rem .5rem; }
+  .dashboard :global(aside > div > div:last-child > div) { justify-content: center; }
+  .dashboard :global(.pl-64) { padding-left: 3.75rem; }
+  .dashboard :global(header) { padding-left: .75rem; padding-right: .75rem; }
+  .dashboard :global(main) { padding: 1rem; }
+}
